@@ -1,0 +1,220 @@
+# E-poe tarnijakataloogide pipeline — Airflow + dbt + Superset stack
+#
+# Teenused:
+#   airflow-db          — Airflow metaandmebaas
+#   airflow-init        — ühekordne initsialiseerimine
+#   airflow-apiserver   — Airflow UI ja REST API (port 8083)
+#   airflow-scheduler   — DAG-ide käivitamine
+#   airflow-dag-processor — DAG-ide parsimine
+#   superset-db         — Superset metaandmebaas
+#   superset-init       — Superset ühekordne initsialiseerimine
+#   superset            — Superset näidikulaud (port 8090)
+#
+# Analüütika andmebaas asub Neonis (pilves). Seadista DATABASE_URL .env failis.
+#
+# Käivitamine:
+#   cp .env.example .env
+#   # Täida .env-is DATABASE_URL ja POSTGRES_* (Neon ühenduse andmed)
+#   # Loo Neonis skeemid käsuga: psql $DATABASE_URL -f init/01_create_schemas.sql
+#   docker compose up -d --build
+#   # Airflow: http://localhost:8083  (kasutaja: airflow / parool: airflow)
+#   # Superset: http://localhost:8090 (kasutaja: vt .env SUPERSET_ADMIN_USER)
+
+x-airflow-common:
+  &airflow-common
+  image: apache/airflow:3.1.8
+  env_file:
+    - .env
+  environment:
+    &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_USER:-airflow}:${AIRFLOW_PASSWORD:-airflow}@airflow-db:5432/${AIRFLOW_DB:-airflow}
+    AIRFLOW__CORE__FERNET_KEY: ''
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    AIRFLOW__CORE__EXECUTION_API_SERVER_URL: 'http://airflow-apiserver:8080/execution/'
+    AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW__API_AUTH__JWT_SECRET:-airflow_jwt_secret}
+    AIRFLOW__API_AUTH__JWT_ISSUER: ${AIRFLOW__API_AUTH__JWT_ISSUER:-airflow}
+    AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
+    # Airflow ühendus analytics andmebaasiga (Neon)
+    AIRFLOW_CONN_ANALYTICS_DB: ${DATABASE_URL}
+    # dbt profiilidele vajalikud muutujad (võetakse .env failist)
+    POSTGRES_HOST: ${POSTGRES_HOST}
+    POSTGRES_PORT: "5432"
+    POSTGRES_USER: ${POSTGRES_USER}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    POSTGRES_DB: ${POSTGRES_DB}
+    # dbt installimine koos Airflow'ga (kasutab BashOperator'it)
+    _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-dbt-postgres==1.10.0}
+  volumes:
+    - ./airflow/dags:/opt/airflow/dags
+    - airflow-logs:/opt/airflow/logs
+    - ./dbt_project:/opt/airflow/dbt_project
+  user: "${AIRFLOW_UID:-50000}:0"
+  depends_on:
+    &airflow-common-depends-on
+    airflow-db:
+      condition: service_healthy
+
+services:
+
+  # --- Airflow metaandmebaas ---
+  airflow-db:
+    image: postgres:16
+    container_name: tarnijakataloogid-airflow-db
+    environment:
+      POSTGRES_USER: ${AIRFLOW_USER:-airflow}
+      POSTGRES_PASSWORD: ${AIRFLOW_PASSWORD:-airflow}
+      POSTGRES_DB: ${AIRFLOW_DB:-airflow}
+    volumes:
+      - airflow-db-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${AIRFLOW_USER:-airflow}"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    restart: always
+
+  # --- Airflow ühekordne initsialiseerimine ---
+  airflow-init:
+    <<: *airflow-common
+    container_name: tarnijakataloogid-airflow-init
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        mkdir -p /opt/airflow/{logs,dags}
+        /entrypoint airflow version
+        /entrypoint airflow config list >/dev/null
+        chown -R "${AIRFLOW_UID:-50000}:0" /opt/airflow/
+    environment:
+      <<: *airflow-common-env
+      _AIRFLOW_DB_MIGRATE: 'true'
+      _AIRFLOW_WWW_USER_CREATE: 'true'
+      _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME:-airflow}
+      _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-airflow}
+      _PIP_ADDITIONAL_REQUIREMENTS: ''
+    user: "0:0"
+    restart: "no"
+
+  # --- Airflow API server (UI + REST API) ---
+  airflow-apiserver:
+    <<: *airflow-common
+    container_name: tarnijakataloogid-airflow-apiserver
+    command: api-server
+    ports:
+      - "${AIRFLOW_PORT_HOST:-8083}:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/api/v2/monitor/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  # --- Airflow scheduler ---
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: tarnijakataloogid-airflow-scheduler
+    command: scheduler
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8974/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  # --- Airflow DAG processor ---
+  airflow-dag-processor:
+    <<: *airflow-common
+    container_name: tarnijakataloogid-airflow-dagproc
+    command: dag-processor
+    healthcheck:
+      test: ["CMD-SHELL", "airflow jobs check --job-type DagProcessorJob --hostname \"$${HOSTNAME}\""]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  # --- Superset metaandmebaas ---
+  superset-db:
+    image: postgres:16
+    container_name: tarnijakataloogid-superset-db
+    environment:
+      POSTGRES_USER: ${SUPERSET_DB_USER}
+      POSTGRES_PASSWORD: ${SUPERSET_DB_PASSWORD}
+      POSTGRES_DB: ${SUPERSET_DB_NAME}
+    volumes:
+      - superset-db-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SUPERSET_DB_USER} -d ${SUPERSET_DB_NAME}"]
+      interval: 5s
+      retries: 10
+    restart: always
+
+  # --- Superset ühekordne initsialiseerimine (migratsioonid + admin kasutaja) ---
+  superset-init:
+    build:
+      context: .
+      dockerfile: Dockerfile.superset
+    container_name: tarnijakataloogid-superset-init
+    depends_on:
+      superset-db:
+        condition: service_healthy
+    volumes:
+      - ./superset/superset_config.py:/app/superset_config.py
+      - superset-home:/app/superset_home
+    environment:
+      SUPERSET_CONFIG_PATH: /app/superset_config.py
+      DATABASE_URI: "postgresql+psycopg2://${SUPERSET_DB_USER}:${SUPERSET_DB_PASSWORD}@superset-db:5432/${SUPERSET_DB_NAME}"
+      SECRET_KEY: ${SUPERSET_SECRET_KEY}
+      ADMIN_USERNAME: ${SUPERSET_ADMIN_USER}
+      ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD}
+      ADMIN_EMAIL: ${SUPERSET_ADMIN_EMAIL}
+    command:
+      - /bin/sh
+      - -c
+      - "superset db upgrade && superset fab create-admin --username $${ADMIN_USERNAME} --firstname Admin --lastname User --email $${ADMIN_EMAIL} --password $${ADMIN_PASSWORD} && superset init"
+    restart: "no"
+
+  # --- Apache Superset näidikulaud ---
+  superset:
+    build:
+      context: .
+      dockerfile: Dockerfile.superset
+    container_name: tarnijakataloogid-superset
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
+    ports:
+      - "${SUPERSET_PORT_HOST:-8090}:8088"
+    volumes:
+      - ./superset/superset_config.py:/app/superset_config.py
+      - superset-home:/app/superset_home
+    environment:
+      SUPERSET_CONFIG_PATH: /app/superset_config.py
+      DATABASE_URI: "postgresql+psycopg2://${SUPERSET_DB_USER}:${SUPERSET_DB_PASSWORD}@superset-db:5432/${SUPERSET_DB_NAME}"
+      SECRET_KEY: ${SUPERSET_SECRET_KEY}
+    command: ["/app/docker/entrypoints/run-server.sh"]
+    restart: always
+
+volumes:
+  airflow-db-volume:
+  airflow-logs:
+  superset-db-volume:
+  superset-home:

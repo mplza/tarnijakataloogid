@@ -1,0 +1,39 @@
+version: 2
+
+sources:
+  - name: staging
+    schema: staging
+    tables:
+      - name: tooted_raw
+        description: "Tarnijakataloogide toorandmed päevaste hetktõmmistena"
+
+models:
+  - name: stg_tooted
+    description: "Puhastatud ja rikastatud tarnijakataloogi andmed"
+    columns:
+      - name: run_id
+        description: "Pipeline käivituse ID"
+        tests:
+          - not_null
+      - name: tarnija_kood
+        description: "Tarnija kood"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["RESIST", "CAPS", "MCU", "LED", "SENSOR", "CONNECT"]
+      - name: sumbol
+        description: "TME tootesümbol (nt 'BCR133')"
+        tests:
+          - not_null
+      - name: hind
+        description: "Toote hind enne allahindlust"
+        tests:
+          - not_null
+      - name: loplik_hind
+        description: "Toote hind pärast allahindlust"
+        tests:
+          - not_null
+      - name: laetud_kuupaev
+        description: "Hetktõmmise kuupäev"
+        tests:
+          - not_null
