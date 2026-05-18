@@ -5,11 +5,13 @@ need dbt abil ning kuvab tulemused Apache Supersetis.
 
 ## Stack
 
-| Teenus          | Versioon | Port (host) | Kasutaja / parool  |
-|-----------------|----------|-------------|--------------------|
-| PostgreSQL      | 18       | 55433       | praktikum/praktikum|
-| Apache Airflow  | 3.1.8    | 8083        | airflow/airflow    |
-| Apache Superset | 6.0.0    | 8090        | admin/admin        |
+| Komponent | Tööriist |
+|-----------|---------|
+| Orkestreerimine | Apache Airflow 3.1.8 |
+| Transformatsioon | dbt Core 1.12.0-b1 |
+| Andmehoidla | PostgreSQL (Neon) |
+| Näidikulaud | Apache Superset 6.0.0 |
+| Andmeallikas | TME API v2 |
 
 ## Andmeallikas
 
@@ -58,7 +60,7 @@ cp .env.example .env
 # 2. Käivita stack
 docker compose up -d --build
 
-# Oodake ~2-3 minutit, kuni kõik teenused käivituvad
+# Oota ~2-3 minutit, kuni kõik teenused käivituvad
 
 # 3. Ava Airflow UI
 # http://localhost:8083  (airflow / airflow)
@@ -101,7 +103,7 @@ marts.mart_kategooria_hinnajaotus   ← dbt table: kategooriate trendid (Superse
 
 1. Lisa andmebaasiühendus: **Settings → Database Connections → + Database**
    - Engine: PostgreSQL
-   - Kasuta Neon ühendusstring `.env` failist (`DATABASE_URL`)
+   - Neon ühendusstring `.env` failist (`DATABASE_URL`)
 
 2. Lisa datasetid: **Datasets → + Dataset**
    - `marts.mart_tarnija_kokkuvote`
@@ -120,7 +122,7 @@ docker compose down -v     # peatab ja kustutab kõik andmed (täielik lähtesta
 
 | Nimi | Roll |
 |------|------|
-| [Merilin Paas-Loeza] | [Roll] |
-| [Triin Bulõgina] | [Roll] |
-| [Bernard Puström] | [Roll] |
-| [Martin Aasna] | [Roll] |
+| Merilin Paas-Loeza | [Roll] |
+| Triin Bulõgina | [Roll] |
+| Bernard Puström | [Roll] |
+| Martin Aasna | [Roll] |
