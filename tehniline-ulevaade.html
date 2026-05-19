@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="et">
+<head>
+<meta charset="UTF-8">
+<title>Tarnijakataloogide pipeline — tehniline ülevaade</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --blue:   #2563eb;
+    --green:  #16a34a;
+    --orange: #ea580c;
+    --purple: #7c3aed;
+    --gray:   #64748b;
+    --light:  #f1f5f9;
+    --border: #e2e8f0;
+    --text:   #1e293b;
+  }
+
+  html { font-size: 14px; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    color: var(--text);
+    line-height: 1.65;
+    background: #fff;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 48px 56px;
+  }
+
+  /* ── Typography ── */
+  h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -.4px; margin-bottom: .25rem; }
+  h2 { font-size: 1.1rem; font-weight: 700; margin: 2rem 0 .65rem; padding-bottom: .35rem;
+       border-bottom: 2px solid var(--blue); color: var(--blue); }
+  h3 { font-size: .9rem; font-weight: 600; margin: 1.2rem 0 .4rem; color: var(--text); }
+  p  { margin-bottom: .7rem; }
+  ul, ol { padding-left: 1.4rem; margin-bottom: .7rem; }
+  li { margin-bottom: .25rem; }
+
+  .subtitle { color: var(--gray); font-size: .875rem; margin-bottom: 2rem; }
+  .subtitle span { margin-right: .75rem; }
+
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .78rem;
+    background: var(--light);
+    padding: .1rem .35rem;
+    border-radius: 4px;
+    color: #dc2626;
+  }
+
+  /* ── Stack table ── */
+  .stack-table { width: 100%; border-collapse: collapse; margin: .75rem 0 1rem; font-size: .85rem; }
+  .stack-table th {
+    background: var(--light); text-align: left; padding: .5rem .75rem;
+    font-weight: 600; border: 1px solid var(--border); color: var(--gray);
+    text-transform: uppercase; font-size: .7rem; letter-spacing: .05em;
+  }
+  .stack-table td { padding: .45rem .75rem; border: 1px solid var(--border); vertical-align: top; }
+  .stack-table tr:nth-child(even) td { background: #fafafa; }
+
+  /* ── Pipeline diagram ── */
+  .pipeline {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin: 1rem 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  .pipe-box {
+    background: var(--light);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: .5rem .85rem;
+    text-align: center;
+    font-size: .78rem;
+    font-weight: 600;
+    min-width: 90px;
+    flex-shrink: 0;
+  }
+  .pipe-box .label { color: var(--gray); font-weight: 400; font-size: .68rem; }
+  .pipe-arrow { color: var(--gray); font-size: 1.1rem; padding: 0 .3rem; flex-shrink: 0; }
+
+  .pipe-box.api    { border-color: #f59e0b; background: #fffbeb; }
+  .pipe-box.airflow{ border-color: var(--blue); background: #eff6ff; }
+  .pipe-box.db     { border-color: var(--green); background: #f0fdf4; }
+  .pipe-box.dbt    { border-color: var(--orange); background: #fff7ed; }
+  .pipe-box.viz    { border-color: var(--purple); background: #faf5ff; }
+
+  /* ── Data model diagram ── */
+  .datamodel {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: .5rem;
+    margin: .75rem 0 1rem;
+  }
+  .dm-row { display: flex; align-items: center; gap: .5rem; }
+  .dm-box {
+    flex: 1;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    padding: .4rem .7rem;
+    font-size: .8rem;
+  }
+  .dm-box .name { font-weight: 600; }
+  .dm-box .desc { color: var(--gray); font-size: .72rem; }
+  .dm-box.raw         { border-color: #f59e0b; background: #fffbeb; }
+  .dm-box.staging     { border-color: #3b82f6; background: #eff6ff; }
+  .dm-box.intermediate{ border-color: var(--orange); background: #fff7ed; }
+  .dm-box.mart        { border-color: var(--purple); background: #faf5ff; }
+  .dm-arrow { color: var(--gray); font-size: 1rem; }
+
+  /* ── Supplier table ── */
+  .supplier-table { width: 100%; border-collapse: collapse; font-size: .82rem; margin: .5rem 0 1rem; }
+  .supplier-table th { background: var(--light); border: 1px solid var(--border); padding: .4rem .65rem;
+                       font-weight: 600; font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; color: var(--gray); }
+  .supplier-table td { border: 1px solid var(--border); padding: .4rem .65rem; }
+  .supplier-table tr:nth-child(even) td { background: #fafafa; }
+
+  /* ── Callout boxes ── */
+  .callout {
+    border-left: 3px solid var(--blue);
+    background: var(--light);
+    padding: .6rem .9rem;
+    border-radius: 0 6px 6px 0;
+    font-size: .82rem;
+    margin: .75rem 0;
+    color: #334155;
+  }
+  .callout.green { border-color: var(--green); background: #f0fdf4; }
+  .callout.orange { border-color: var(--orange); background: #fff7ed; }
+
+  /* ── Tasks ── */
+  .task-list { display: grid; gap: .4rem; margin: .5rem 0 1rem; }
+  .task {
+    display: flex; gap: .75rem; align-items: flex-start;
+    background: var(--light); border: 1px solid var(--border);
+    border-radius: 6px; padding: .5rem .75rem; font-size: .82rem;
+  }
+  .task-num {
+    background: var(--blue); color: #fff; border-radius: 4px;
+    padding: .05rem .4rem; font-size: .72rem; font-weight: 700;
+    flex-shrink: 0; margin-top: .1rem;
+  }
+  .task-num.green { background: var(--green); }
+  .task-num.orange { background: var(--orange); }
+
+  /* ── DAG task boxes ── */
+  .dag { display: flex; align-items: center; gap: 0; margin: .75rem 0; }
+  .dag-task {
+    flex: 1; border: 1.5px solid var(--border); border-radius: 8px;
+    padding: .55rem .8rem; font-size: .8rem; font-weight: 600;
+    text-align: center; background: var(--light);
+  }
+  .dag-task .sub { font-weight: 400; font-size: .7rem; color: var(--gray); }
+  .dag-task.t1 { border-color: #f59e0b; background: #fffbeb; }
+  .dag-task.t2 { border-color: var(--orange); background: #fff7ed; }
+  .dag-task.t3 { border-color: var(--green); background: #f0fdf4; }
+  .dag-sep { color: var(--gray); padding: 0 .4rem; font-size: .9rem; }
+
+  /* ── Docker services ── */
+  .services { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; margin: .5rem 0 1rem; }
+  .svc { border: 1px solid var(--border); border-radius: 6px; padding: .45rem .7rem; font-size: .78rem; }
+  .svc .svc-name { font-weight: 600; font-family: 'JetBrains Mono', monospace; font-size: .73rem; }
+  .svc .svc-desc { color: var(--gray); font-size: .7rem; }
+
+  /* ── Page break ── */
+  @media print {
+    body { padding: 32px 40px; max-width: 100%; }
+    .page-break { page-break-before: always; }
+    h2 { page-break-after: avoid; }
+  }
+
+  /* ── Cover ── */
+  .cover { border-bottom: 3px solid var(--blue); padding-bottom: 1.5rem; margin-bottom: .5rem; }
+  .cover-tag {
+    display: inline-block; background: var(--blue); color: #fff;
+    font-size: .7rem; font-weight: 600; padding: .2rem .6rem;
+    border-radius: 4px; margin-bottom: .75rem; letter-spacing: .05em;
+    text-transform: uppercase;
+  }
+
+  footer { margin-top: 3rem; font-size: .72rem; color: var(--gray); border-top: 1px solid var(--border); padding-top: .75rem; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════ COVER ═══ -->
+<div class="cover">
+  <span class="cover-tag">Andmeinseneeria projektitöö</span>
+  <h1>E-poe tarnijakataloogide<br>haldus- ja seirepaneel</h1>
+  <p class="subtitle">
+    <span>📅 Mai 2026</span>
+    <span>Merilin Paas-Loeza · Triin Bulõgina · Bernard Puström · Martin Aasna</span>
+  </p>
+  <p>See dokument kirjeldab projekti tehnilist ülesehitust — mis tööriistad on kasutusel, mida nad teevad, kuidas andmed liiguvad allikast visualisatsioonini ja kuidas kõik omavahel ühendatud on.</p>
+</div>
+
+
+<!-- ════════════════════════════════════════════════ 1. SUUR PILT ═══ -->
+<h2>1. Suur pilt — mis see üldse teeb?</h2>
+
+<p>Projekt laeb iga päev automaatselt kuue elektroonikamüüja tootekataloogid <strong>TME API-st</strong>, puhastab ja rikastab andmed <strong>dbt-ga</strong> ning kuvab tulemused <strong>Superseti</strong> armatuurlaudadel.</p>
+
+<div class="pipeline">
+  <div class="pipe-box api">TME API<br><span class="label">andmeallikas</span></div>
+  <div class="pipe-arrow">→</div>
+  <div class="pipe-box airflow">Airflow DAG<br><span class="label">orkestreerimine</span></div>
+  <div class="pipe-arrow">→</div>
+  <div class="pipe-box db">PostgreSQL<br><span class="label">Neon (pilv)</span></div>
+  <div class="pipe-arrow">→</div>
+  <div class="pipe-box dbt">dbt<br><span class="label">transformatsioon</span></div>
+  <div class="pipe-arrow">→</div>
+  <div class="pipe-box db">PostgreSQL<br><span class="label">marts skeemis</span></div>
+  <div class="pipe-arrow">→</div>
+  <div class="pipe-box viz">Superset<br><span class="label">visualisatsioon</span></div>
+</div>
+
+<div class="callout">
+  Kogu käivitamine käib ühe käsuga: <code>docker compose up -d --build</code>. Docker käivitab kõik teenused, Airflow planeerib DAG-i iga päev automaatselt.
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════ 2. STACK ═══ -->
+<h2>2. Stack — tööriistad ja nende roll</h2>
+
+<table class="stack-table">
+  <tr>
+    <th>Tööriist</th><th>Versioon</th><th>Mida teeb selles projektis</th>
+  </tr>
+  <tr>
+    <td><strong>Apache Airflow</strong></td><td>3.1.8</td>
+    <td>Planeerib ja käivitab andmetoru iga päev. Jälgib, kas sammud õnnestusid. Pakub veebiliidese DAG-ide haldamiseks (<code>localhost:8083</code>).</td>
+  </tr>
+  <tr>
+    <td><strong>dbt Core</strong></td><td>1.12.0-b1</td>
+    <td>Muudab toorandmed SQL-mudelite abil puhtaks analüütikakihiks. Käivitab ka andmekvaliteedi testid. Töötab Airflow konteineri sees.</td>
+  </tr>
+  <tr>
+    <td><strong>PostgreSQL (Neon)</strong></td><td>—</td>
+    <td>Pilve-andmebaas kus elavad kõik andmed: toorandmed, dbt-mudelid, marts-tabelid. Neon = serverless Postgres, ühendus on <code>DATABASE_URL</code> kaudu.</td>
+  </tr>
+  <tr>
+    <td><strong>Apache Superset</strong></td><td>6.0.0</td>
+    <td>Armatuurlauad ja graafikud. Ühendub otse Neon-andmebaasiga ja loeb marts-tabeleist. Veebiliides aadressil <code>localhost:8090</code>.</td>
+  </tr>
+  <tr>
+    <td><strong>TME API v2</strong></td><td>—</td>
+    <td>Elektroonikamüüja avalik REST API. Annab tootesümbolid, hinnad ja laoseisu. Autentimine OAuth 2.0 Bearer tokeniga (kehtib 5 min).</td>
+  </tr>
+  <tr>
+    <td><strong>Docker Compose</strong></td><td>—</td>
+    <td>Käivitab kõik teenused ühe käsuga. Airflow ja Superset töötavad eraldi konteinerites, ühisele võrgule ligipääs tagatud.</td>
+  </tr>
+</table>
+
+
+<!-- ══════════════════════════════════════════════ 3. ANDMEALLIKAS ═══ -->
+<h2>3. Andmeallikas — TME API</h2>
+
+<p>TME on Poola elektroonikamüüja. Projekt kasutab nende REST API v2 kolme otspunkti:</p>
+
+<ol>
+  <li><code>POST /auth/token</code> — küsib OAuth 2.0 access tokeni (HTTP Basic Auth: <code>API_PRIVATE_KEY:API_APP_SECRET</code>)</li>
+  <li><code>GET /products/search?phrase=…</code> — otsib tootesümbolid kategooria järgi (nt <em>resistors</em>)</li>
+  <li><code>GET /products/data?symbols[]=…</code> — laeb hinnad ja laoseisu (kuni 50 sümbolit korraga)</li>
+</ol>
+
+<p>Projektis on 6 fiktiivset tarnijat, kellest igaüks vastab ühele TME otsinguterminile:</p>
+
+<table class="supplier-table">
+  <tr><th>Kood</th><th>Tarnija nimi</th><th>TME otsingutermin</th><th>Riik</th></tr>
+  <tr><td>RESIST</td><td>ResistorTrade OÜ</td><td>resistors</td><td>Eesti</td></tr>
+  <tr><td>CAPS</td><td>CapacitorTech AS</td><td>capacitors</td><td>Läti</td></tr>
+  <tr><td>MCU</td><td>MicroChip SIA</td><td>microcontrollers</td><td>Leedu</td></tr>
+  <tr><td>LED</td><td>LightTech OÜ</td><td>led diodes</td><td>Soome</td></tr>
+  <tr><td>SENSOR</td><td>SensorPro OÜ</td><td>sensors</td><td>Eesti</td></tr>
+  <tr><td>CONNECT</td><td>ConnectWay AS</td><td>connectors</td><td>Läti</td></tr>
+</table>
+
+<div class="callout orange">
+  Tarnijate andmed elavad <code>dbt_project/seeds/tarnijad.csv</code> failis. <code>dbt seed</code> laeb need andmebaasi tabelina, et SQL-mudelid saaksid neile JOIN-iga viidata.
+</div>
+
+
+<!-- ════════════════════════════════════════════ 4. AIRFLOW DAG ═══ -->
+<h2>4. Airflow DAG — töövoo kolm sammu</h2>
+
+<p>DAG käivitub kord päevas (<code>@daily</code>) ja koosneb kolmest järjestikusest taskist:</p>
+
+<div class="dag">
+  <div class="dag-task t1">laadi_kataloogid<div class="sub">PythonOperator</div></div>
+  <div class="dag-sep">▶</div>
+  <div class="dag-task t2">dbt_run<div class="sub">BashOperator</div></div>
+  <div class="dag-sep">▶</div>
+  <div class="dag-task t3">dbt_test<div class="sub">BashOperator</div></div>
+</div>
+
+<div class="task-list">
+  <div class="task">
+    <span class="task-num">1</span>
+    <div><strong>laadi_kataloogid</strong> — hangib TME API-st kõigi 6 tarnija tootesümbolid, hinnad ja laoseisu. Salvestab tulemuse <code>staging.tooted_raw</code> tabelisse päevase hetktõmmisena. <code>ON CONFLICT DO NOTHING</code> tagab, et sama päeva andmeid ei dubleerita, isegi kui task kordub.</div>
+  </div>
+  <div class="task">
+    <span class="task-num green">2</span>
+    <div><strong>dbt_run</strong> — käivitab <code>dbt seed</code> (tarnijad.csv → andmebaas) ja seejärel <code>dbt run</code> (kõik SQL-mudelid järjekorras: staging → intermediate → marts).</div>
+  </div>
+  <div class="task">
+    <span class="task-num orange">3</span>
+    <div><strong>dbt_test</strong> — kontrollib andmekvaliteeti: mitte-null väljad, tarnijate koodide lubatud väärtused. Kui test ebaõnnestub, logitakse viga Airflow UI-s.</div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════ 5. ANDMEMUDEL (DBT) ═══ -->
+<div class="page-break"></div>
+<h2>5. Andmemudel — kuidas andmed dbt-s liiguvad</h2>
+
+<p>dbt jagab andmed nelja kihti. Iga kiht on Postgresist eraldi skeemis (<code>staging</code>, <code>intermediate</code>, <code>marts</code>):</p>
+
+<div class="datamodel">
+  <div class="dm-row">
+    <div class="dm-box raw">
+      <div class="name">staging.tooted_raw</div>
+      <div class="desc">Airflow laeb siia toorandmed · tabel · skeemis staging</div>
+    </div>
+  </div>
+  <div class="dm-row" style="justify-content:center; font-size:.85rem; color:var(--gray)">↓ dbt view</div>
+  <div class="dm-row">
+    <div class="dm-box staging">
+      <div class="name">stg_tooted</div>
+      <div class="desc">Puhastus + <code>loplik_hind</code> + <code>on_laost_otsas</code> · view · skeemis staging</div>
+    </div>
+  </div>
+  <div class="dm-row" style="justify-content:center; font-size:.85rem; color:var(--gray)">↓ dbt view + JOIN tarnijad</div>
+  <div class="dm-row">
+    <div class="dm-box intermediate">
+      <div class="name">int_toode_hinnamuutus</div>
+      <div class="desc">Päevane hinnamuutus <code>LAG()</code>-ga + tarnija info JOIN · view · skeemis intermediate</div>
+    </div>
+  </div>
+  <div class="dm-row" style="justify-content:center; font-size:.85rem; color:var(--gray)">↓ dbt table (materaliseeritud)</div>
+  <div class="dm-row" style="gap:.5rem">
+    <div class="dm-box mart" style="flex:1">
+      <div class="name">mart_tarnija_kokkuvote</div>
+      <div class="desc">Koondstatistika tarnija kaupa · viimane päev</div>
+    </div>
+    <div class="dm-box mart" style="flex:1">
+      <div class="name">mart_kategooria_hinnajaotus</div>
+      <div class="desc">Hinnajaotus kategooriate kaupa · trendid</div>
+    </div>
+  </div>
+</div>
+
+<h3>Miks kolm kihti?</h3>
+<ul>
+  <li><strong>Staging</strong> — puhas koopia toorandmetest, minimaalne töötlus. Kerge muuta ilma midagi lõhkumata.</li>
+  <li><strong>Intermediate</strong> — äriloogika (hinnamuutused, tarnija ühendamine). Staging ja marts ei sõltu teineteisest otse.</li>
+  <li><strong>Marts</strong> — lõpptabelid, mida Superset loeb. Materaliseeritud tabelina (mitte view), et päringud oleksid kiired.</li>
+</ul>
+
+<div class="callout green">
+  <code>tarnijad</code> seed on eraldi viitetabel — tarnijate nimed ja riigid on CSV-s, mitte hardcoditud SQL-i. Uue tarnija lisamiseks piisab ühest uuest reast CSVs.
+</div>
+
+
+<!-- ═══════════════════════════════════════════ 6. ANDMEBAAS ═══ -->
+<h2>6. Andmebaas — PostgreSQL Neonis</h2>
+
+<p>Andmebaas asub <strong>Neon</strong>-is (serverless Postgres pilves). Ühendusstring on <code>.env</code> failis muutuja <code>DATABASE_URL</code> all. Nii Airflow kui Superset ühenduvad sama andmebaasiga:</p>
+
+<ul>
+  <li>Airflow kirjutab → <code>staging.tooted_raw</code></li>
+  <li>dbt loob/uuendab → kõik view-d ja tabelid skeemides <code>staging</code>, <code>intermediate</code>, <code>marts</code></li>
+  <li>Superset loeb → <code>marts.*</code></li>
+</ul>
+
+<p>Skeemid ja <code>tooted_raw</code> tabel luuakse käsuga <code>psql $DATABASE_URL -f init/01_create_schemas.sql</code> — see tuleb teha üks kord enne esimest käivitust.</p>
+
+<div class="callout orange">
+  <code>staging.pipeline_runs</code> on auditilogi — iga DAG-käivituse kirje (aeg, kirjete arv, staatus). Kasulik silumiseks.
+</div>
+
+
+<!-- ═══════════════════════════════════════ 7. DOCKER TEENUSED ═══ -->
+<h2>7. Docker Compose — teenused</h2>
+
+<div class="services">
+  <div class="svc">
+    <div class="svc-name">airflow-db</div>
+    <div class="svc-desc">Airflow oma metaandmebaas (DAG-ide ajalugu, kasutajad). Eraldi Neon-ist.</div>
+  </div>
+  <div class="svc">
+    <div class="svc-name">airflow-init</div>
+    <div class="svc-desc">Ühekordne konteiner: loob admin-kasutaja, initseerib Airflow andmebaasi.</div>
+  </div>
+  <div class="svc">
+    <div class="svc-name">airflow-apiserver</div>
+    <div class="svc-desc">Airflow veebiliides ja REST API. Port <code>8083</code>.</div>
+  </div>
+  <div class="svc">
+    <div class="svc-name">airflow-scheduler</div>
+    <div class="svc-desc">Otsustab millal DAG-e käivitada. Töötab pidevalt taustal.</div>
+  </div>
+  <div class="svc">
+    <div class="svc-name">airflow-dag-processor</div>
+    <div class="svc-desc">Parsib DAG-failid (<code>airflow/dags/</code>) ja registreerib need Airflow-s.</div>
+  </div>
+  <div class="svc">
+    <div class="svc-name">superset-db</div>
+    <div class="svc-desc">Superseti oma metaandmebaas (dashboardid, kasutajad). Eraldi Neon-ist.</div>
+  </div>
+  <div class="svc">
+    <div class="svc-name">superset-init</div>
+    <div class="svc-desc">Ühekordne konteiner: loob admin-kasutaja, initseerib Superseti.</div>
+  </div>
+  <div class="svc">
+    <div class="svc-name">superset</div>
+    <div class="svc-desc">Visualisatsioonide veebiliides. Port <code>8090</code>.</div>
+  </div>
+</div>
+
+<div class="callout">
+  <code>dbt</code> ei ole eraldi teenus — see installitakse Airflow konteinerisse käivitusajal (<code>_PIP_ADDITIONAL_REQUIREMENTS: dbt-postgres</code>) ja käivitatakse <code>BashOperator</code>-iga DAG-i sees.
+</div>
+
+
+<!-- ══════════════════════════════════════════ 8. KONFIGURATSIOON ═══ -->
+<h2>8. Konfiguratsioon — .env fail</h2>
+
+<p>Kõik saladused ja ühendusandmed elavad <code>.env</code> failis. <code>.env.example</code> näitab vajalikud muutujad:</p>
+
+<ul>
+  <li><code>DATABASE_URL</code> — Neoni ühendusstring (nii Airflow kui Superset kasutavad seda)</li>
+  <li><code>POSTGRES_HOST / USER / PASSWORD / DB</code> — dbt profiili jaoks eraldi</li>
+  <li><code>API_PRIVATE_KEY / API_APP_SECRET</code> — TME OAuth2 kredentsiaalid</li>
+  <li><code>SUPERSET_ADMIN_USER / PASSWORD</code> — Superseti admin</li>
+</ul>
+
+<div class="callout orange">
+  <strong>.env faili ei tohi giti panna</strong> — see on <code>.gitignore</code>-is. Igale meeskonnaliikmele tuleb anda oma koopia.
+</div>
+
+
+<!-- ════════════════════════════════════════════ 9. KÄIVITAMINE ═══ -->
+<h2>9. Esimene käivitamine samm-sammult</h2>
+
+<div class="task-list">
+  <div class="task"><span class="task-num">1</span><div>Kopeeri <code>cp .env.example .env</code> ja täida andmed (DATABASE_URL, API võtmed)</div></div>
+  <div class="task"><span class="task-num">2</span><div>Loo andmebaasis skeemid: <code>psql $DATABASE_URL -f init/01_create_schemas.sql</code></div></div>
+  <div class="task"><span class="task-num">3</span><div>Käivita stack: <code>docker compose up -d --build</code> — oota ~2–3 minutit</div></div>
+  <div class="task"><span class="task-num green">4</span><div>Airflow UI: <code>http://localhost:8083</code> (airflow/airflow) → DAGs → tarnijakataloog_pipeline → ▶ Trigger DAG</div></div>
+  <div class="task"><span class="task-num green">5</span><div>Superset: <code>http://localhost:8090</code> → Lisa andmebaasiühendus (Neon DATABASE_URL) → Lisa datasetid marts-skeemist → Loo graafikud</div></div>
+</div>
+
+
+<!-- ══════════════════════════════════════════ 10. PROJEKTISTRUKTUUR ═══ -->
+<h2>10. Projektistruktuur</h2>
+
+<pre style="font-family:'JetBrains Mono',monospace;font-size:.73rem;background:var(--light);padding:.9rem 1rem;border-radius:8px;border:1px solid var(--border);line-height:1.7;overflow-x:auto">projektitoo-tarnijakataloogid/
+├── airflow/dags/
+│   └── tarnijakataloog_pipeline.py  ← kogu DAG-i loogika (API + DB kirjutamine)
+├── dbt_project/
+│   ├── seeds/tarnijad.csv           ← tarnijate viitetabel
+│   ├── profiles.yml                 ← dbt ühendusseaded (loeb .env muutujaid)
+│   └── models/
+│       ├── staging/stg_tooted.sql        ← puhastus, tuletatud väljad
+│       ├── intermediate/
+│       │   └── int_toode_hinnamuutus.sql ← LAG() hinnamuutus + tarnija JOIN
+│       └── marts/
+│           ├── mart_tarnija_kokkuvote.sql        ← Supersetile
+│           └── mart_kategooria_hinnajaotus.sql   ← Supersetile
+├── init/01_create_schemas.sql       ← skeemide loomine (käita üks kord)
+├── superset/superset_config.py      ← Superseti konfiguratsioon
+├── compose.yml                      ← kõik Docker teenused
+├── Dockerfile.superset              ← kohandatud Superset image
+└── .env.example                     ← mallina, täida oma andmetega</pre>
+
+<footer>
+  Dokument genereeritud mai 2026 · Andmeinseneeria projektitöö · HARNO täiendkoolitusprogramm
+</footer>
+
+</body>
+</html>
