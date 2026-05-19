@@ -3,6 +3,8 @@
 Andmetorude pipeline, mis laadib e-poe tarnijakataloogide andmed, töötleb
 need dbt abil ning kuvab tulemused Apache Supersetis.
 
+Tehniline ülevaade: https://mplza.github.io/tarnijakataloogid/tehniline-ulevaade.html
+
 ## Stack
 
 | Komponent | Tööriist |
