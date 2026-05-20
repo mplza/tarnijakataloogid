@@ -43,7 +43,7 @@ TME_API_BASE = "https://api.tme.eu"
 TME_RIIK = "EE"
 TME_VALUUTA = "EUR"
 TME_OTSINGU_PIIR = 100   # maksimaalne toodete arv otsingu kohta
-TME_PAKETI_SUURUS = 50   # maksimaalne sümbolite arv /products/data päringu kohta
+TME_PAKETI_SUURUS = 25   # maksimaalne sümbolite arv /products/data päringu kohta
 
 
 def _hangi_token() -> str:
