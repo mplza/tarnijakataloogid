@@ -165,11 +165,13 @@ def laadi_kataloogid(**context):
     )
 
     try:
-        token = _hangi_token()
         kokku_kirjeid = 0
 
         # Kogu kõik read enne andmebaasi kirjutamist — üks batch INSERT tarnija kohta
         for tarnija_kood, otsingutermin in TARNIJAD:
+            # Token hangitakse iga tarnija ees (kehtib 5 min, 6 tarnijat võib ületada piiri)
+            token = _hangi_token()
+
             # Samm 1: otsi tootesümbolid ja põhiinfo
             symbol_info = _otsimise_symbolid(token, otsingutermin)
             symbolid = list(symbol_info.keys())
