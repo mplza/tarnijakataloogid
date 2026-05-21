@@ -28,6 +28,23 @@ Iga päev laetakse 6 kategooria tooted. Iga päev salvestatakse eraldi snapshot,
 
 ## Andmevoog
 
+```mermaid
+flowchart LR
+    A[REST API<br>Andmeallikas] --> B[Apache Airflow<br>Orkestreerimine]
+    B --> C[Andmete pärimine ja laadimine<br>API-st andmebaasi]
+    C --> D[(PostgreSQL / Neon<br>Andmebaas)]
+
+    D --> E[Staging kiht<br>Toorandmete esmane korrastus]
+    E --> F[dbt Core<br>Transformatsioonid]
+    F --> G[Silver kiht<br>Puhastatud ja standardiseeritud andmed]
+    G --> H[Gold kiht<br>Analüüsiks valmis tabelid]
+
+    F --> I[Andmekvaliteedi kontroll<br>dbt testid]
+    I --> G
+
+    H --> J[Apache Superset<br>Näidikulaud ja visualiseeringud]
+```
+
 ## Andmebaasi kihid
 
 ## Tööjaotus
