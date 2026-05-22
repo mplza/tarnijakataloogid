@@ -11,9 +11,9 @@ Millised elektroonikakomponendid on erinevate tarnijate ja tootjate lõikes kõi
 1. Unikaalsete tootjate arv
 2. Unikaalsete tarnijate arv
 3. Unikaalsete toodete arv
-3. Elektroonikakomponentide kategooriate arv
-4. TOP 10 kallimat toodet
-5. Toodete hinnavõrdluse tabel tootjate, tarnijate lõikes (min, max, soodsaim/kalleim pakkuja)
+4. Elektroonikakomponentide kategooriate arv
+5. TOP 10 kallimat toodet
+6. Toodete hinnavõrdluse tabel tootjate, tarnijate lõikes (min, max, soodsaim/kalleim pakkuja)
 
 ## Andmeallikad
 
