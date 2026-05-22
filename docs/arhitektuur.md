@@ -2,7 +2,18 @@
 
 ## Äriküsimus
 
+Anda ülevaade elektroonikakomponentide tootekataloogis olevatest toodetest, tarnijatest ja tootjatest ning tuua välja samade toodete hinnaerinevused tarnijate ja tootjate lõikes.
+
+Millised elektroonikakomponendid on erinevate tarnijate ja tootjate lõikes kõige optimaalsema hinnaga?
+
 ## Mõõdikud
+
+1. Unikaalsete tootjate arv
+2. Unikaalsete tarnijate arv
+3. Unikaalsete toodete arv
+3. Elektroonikakomponentide kategooriate arv
+4. TOP 10 kallimat toodet
+5. Toodete hinnavõrdluse tabel tootjate, tarnijate lõikes (min, max, soodsaim/kalleim pakkuja)
 
 ## Andmeallikad
 
@@ -46,6 +57,10 @@ flowchart LR
 ```
 
 ## Andmebaasi kihid
+
+- `staging` hoiab API-st saadud päevapõhist lähtekuju;
+- `marts` hoiab koondstatistikat tarnija kaupa, hinnajaotust kategooriate kaupa;
+- `quality` hoiab andmekvaliteedi testide tulemusi.
 
 ## Tööjaotus
 
