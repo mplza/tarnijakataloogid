@@ -20,7 +20,7 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ["RESIST", "CAPS", "MCU", "LED", "SENSOR", "CONNECT"]
+              values: ["RESIST", "CAPS", "MCU", "LED", "SENSOR", "CONNECT", "E14_RESIST", "E14_CAPS", "E14_MCU", "E14_LED", "E14_SENSOR", "E14_CONNECT"]
       - name: sumbol
         description: "TME tootesümbol (nt 'BCR133')"
         tests:
