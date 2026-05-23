@@ -5,3 +5,9 @@ MCU,MicroChip SIA,microcontrollers,Leedu,true
 LED,LightTech OÜ,led diodes,Soome,true
 SENSOR,SensorPro OÜ,sensors,Eesti,true
 CONNECT,ConnectWay AS,connectors,Läti,true
+E14_RESIST,Farnell UK,resistors,Inglismaa,true
+E14_CAPS,Farnell UK,capacitors,Inglismaa,true
+E14_MCU,Farnell UK,microcontrollers,Inglismaa,true
+E14_LED,Farnell UK,led diodes,Inglismaa,true
+E14_SENSOR,Farnell UK,sensors,Inglismaa,true
+E14_CONNECT,Farnell UK,connectors,Inglismaa,true
