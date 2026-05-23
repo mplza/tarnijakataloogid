@@ -201,8 +201,8 @@
 </div>
 
 
-<!-- ════════════════════════════════════════════════ 1. SUUR PILT ═══ -->
-<h2>1. Suur pilt — mis see üldse teeb?</h2>
+<!-- ════════════════════════════════════════════════ 1. ARHITEKTUUR ═══ -->
+<h2>1. Arhitektuur</h2>
 
 <p>Projekt laeb iga päev automaatselt kuue elektroonikamüüja tootekataloogid <strong>TME API-st</strong>, puhastab ja rikastab andmed <strong>dbt-ga</strong> ning kuvab tulemused <strong>Superseti</strong> armatuurlaudadel.</p>
 
@@ -343,7 +343,7 @@
       <div class="desc">Päevane hinnamuutus <code>LAG()</code>-ga + tarnija info JOIN · view · skeemis intermediate</div>
     </div>
   </div>
-  <div class="dm-row" style="justify-content:center; font-size:.85rem; color:var(--gray)">↓ dbt table (materaliseeritud)</div>
+  <div class="dm-row" style="justify-content:center; font-size:.85rem; color:var(--gray)">↓ dbt table (materialiseeritud)</div>
   <div class="dm-row" style="gap:.5rem">
     <div class="dm-box mart" style="flex:1">
       <div class="name">mart_tarnija_kokkuvote</div>
@@ -360,7 +360,7 @@
 <ul>
   <li><strong>Staging</strong> — puhas koopia toorandmetest, minimaalne töötlus. Kerge muuta ilma midagi lõhkumata.</li>
   <li><strong>Intermediate</strong> — äriloogika (hinnamuutused, tarnija ühendamine). Staging ja marts ei sõltu teineteisest otse.</li>
-  <li><strong>Marts</strong> — lõpptabelid, mida Superset loeb. Materaliseeritud tabelina (mitte view), et päringud oleksid kiired.</li>
+  <li><strong>Marts</strong> — lõpptabelid, mida Superset loeb. ialiseeritud tabelina (mitte view), et päringud oleksid kiired.</li>
 </ul>
 
 <div class="callout green">
