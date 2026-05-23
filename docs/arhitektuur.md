@@ -64,7 +64,19 @@ flowchart LR
 
 ## Tööjaotus
 
+| Roll | Vastutus |
+|---|---|
+| Andmeallika omanik | Kontrollib API vastust ja kirjutab sissevõtu loogika. |
+| Transformatsioonide omanik | Kirjutab `mart` kihi tabelid ja mõõdikute arvutuse. |
+| Kvaliteedi omanik | Kirjutab testid ja vaatab läbi ebaõnnestunud kontrollid. |
+| Näidikulaua omanik | Ehitab Superseti vaate ja seob selle äriküsimusega. |
+
 ## Riskid
+
+| Risk | Mõju | Maandus |
+|---|---|---|
+| API teenuse tõrked: rate limit, tokeni aegumine või API võrguühenduse probleem | Andmed jäävad laadimata | Kasutatakse retry-loogikat suureneva viivitusega ja vajadusel vähendatakse päringupaketi suurust. Tokeni aegumisel uuendatakse token jooksvalt ning päringuid jätkatakse uue tokeniga. Lisaks logitakse erinevad tõrketüübid. |
+| API-st saadud andmete kvaliteediprobleemid | Vigased arvutused mart-kihis | dbt testid kontrollivad andmekvaliteeti, staging filtreerib välja null hinnad.
 
 ## Privaatsus ja turve
 
