@@ -20,11 +20,12 @@ Millised elektroonikakomponendid on erinevate tarnijate ja tootjate lõikes kõi
 | Allikas | Tüüp | Ajas muutuv? | Roll |
 |---------|------|--------------|------|
 | TME API v2 (`api.tme.eu`) | REST API (OAuth2) | Jah, iga päev | Põhiandmevoog — toodete hinnad ja laoseis |
+| Farnell API (`api.element14.com`) | REST API (API key) | Jah, iga päev | Põhiandmevoog — toodete hinnad ja laoseis |
 | `tarnijad.csv` | seed | Ei, staatiline | Kõrvaltabel — tarnijate nimed ja riigid |
 
 ### Algandmete kirjeldus
 
-Andmed tulevad TME API-st (elektroonika hulgimüüja). Iga toote kohta saame:
+Andmed tulevad TME ja Farnell API-st (elektroonika hulgimüüjad). Iga toote kohta saame:
 
 | Väli | Kirjeldus |
 |------|-----------|
