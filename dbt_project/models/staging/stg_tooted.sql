@@ -1,16 +1,20 @@
--- Staging mudel: puhastab ja rikastab TME tarnijakataloogi toorandmed.
+-- Staging mudel: puhastab ja rikastab tarnijakataloogi toorandmed (TME + Farnell).
 -- Lisab kuupäevaväljad ja märgistab laost otsas olevad tooted.
--- TME-l allahindlust ega kasutajahinnangut ei ole, seega loplik_hind = hind.
+-- Allahindlust ega kasutajahinnangut ei ole, seega loplik_hind = hind.
 
 SELECT
     run_id,
     tarnija_kood,
     sumbol,
+    mpn,
     nimi,
     tootja,
     hind,
     valuuta,
+    valuuta_eur_kurss,
+    ROUND(hind * valuuta_eur_kurss, 4)                       AS hind_eur,
     hind                                                     AS loplik_hind,
+    min_kogus,
     laoseis,
     CASE WHEN laoseis IS NULL OR laoseis = 0
          THEN true
@@ -25,4 +29,5 @@ FROM {{ source('staging', 'tooted_raw') }}
 WHERE hind         IS NOT NULL
   AND hind          > 0
   AND sumbol       IS NOT NULL
+  AND mpn          IS NOT NULL
   AND tarnija_kood IS NOT NULL

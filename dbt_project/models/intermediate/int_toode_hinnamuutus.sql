@@ -11,10 +11,12 @@ WITH base AS (
     SELECT
         s.tarnija_kood,
         s.sumbol,
+        s.mpn,
         s.nimi,
         s.tootja,
         s.laetud_kuupaev,
         s.hind,
+        s.hind_eur,
         s.loplik_hind,
         s.valuuta,
         s.laoseis,

@@ -6,3 +6,9 @@ target/
 dbt_packages/
 logs/
 .user.yml
+
+# IDE / arendaja-spetsiifiline
+.idea/
+
+# Ühekordsed avastus- ja valideerimisskriptid (audit trail kohalik)
+scripts/
