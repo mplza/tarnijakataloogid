@@ -5,7 +5,7 @@ sources:
     schema: staging
     tables:
       - name: tooted_raw
-        description: "Tarnijakataloogide toorandmed päevaste hetktõmmistena"
+        description: "Tarnijakataloogide toorandmed päevaste hetktõmmistena (TME + Farnell)"
 
 models:
   - name: stg_tooted
@@ -16,23 +16,35 @@ models:
         tests:
           - not_null
       - name: tarnija_kood
-        description: "Tarnija kood"
+        description: "Tarnija kood (allikas)"
         tests:
           - not_null
           - accepted_values:
-              values: ["RESIST", "CAPS", "MCU", "LED", "SENSOR", "CONNECT", "E14_RESIST", "E14_CAPS", "E14_MCU", "E14_LED", "E14_SENSOR", "E14_CONNECT"]
+              values: ["TME", "FARNELL"]
       - name: sumbol
-        description: "TME tootesümbol (nt 'BCR133')"
+        description: "Poe enda sisemine kood (TME symbol või Farnell SKU)"
         tests:
           - not_null
+      - name: mpn
+        description: "Tootja-osakood (Manufacturer Part Number) tooted.csv seedist"
+        tests:
+          - not_null
+      - name: kategooria
+        description: "Toote kategooria tooted.csv seedist"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["resistors", "capacitors", "microcontrollers", "led diodes", "connectors", "transistors"]
       - name: hind
-        description: "Toote hind enne allahindlust"
+        description: "Ühiku hind väikseimal kogusetasandil"
         tests:
           - not_null
       - name: loplik_hind
         description: "Toote hind pärast allahindlust"
         tests:
           - not_null
+      - name: min_kogus
+        description: "Minimaalne tellitav kogus salvestatud hinna juures"
       - name: laetud_kuupaev
         description: "Hetktõmmise kuupäev"
         tests:
