@@ -76,8 +76,8 @@ def _hangi_gbp_eur_kurss() -> float:
 
 def _hangi_tooted(otsingutermin: str) -> list:
     """
-    Küsib Element14 APIst tooteid, mille MPN sisaldab otsinguterminit,
-    ning laeb hinnad ja laoseisu. Filtreerib MPN-substring järgi.
+    Küsib Element14 APIst tooteid otsinguterminiga, laeb hinnad ja laoseisu
+    ning filtreerib vastused täpse MPN-i järgi.
     Tagastab sku, nimi, tootja, hind, valuuta, min_kogus, laoseis.
     """
     api_key = os.environ["ELEMENT14_API_KEY"]
@@ -106,9 +106,9 @@ def _hangi_tooted(otsingutermin: str) -> list:
         sku = toode.get("sku")
         if not sku:
             continue
-        # Filtreeri ainult MPN-iga matchivad variandid (any: võib tagastada ka lahtisi vasteid)
+        # Filtreeri ainult täpse MPN-iga matchivad variandid
         toote_mpn = (toode.get("translatedManufacturerPartNumber") or "").upper()
-        if mu not in toote_mpn and toote_mpn not in mu:
+        if toote_mpn != mu:
             continue
         nimi = toode.get("displayName") or ""
         tootja = toode.get("brandName") or ""
