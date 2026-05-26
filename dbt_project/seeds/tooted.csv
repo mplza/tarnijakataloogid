@@ -29,7 +29,7 @@ ERA3AEB202V,resistors
 CRCW12064K70FKEA,resistors
 CRCW0603680RFKEA,resistors
 RC0805FR-0718KL,resistors
-RC0603FR-07180KL,resistors
+ERJ3EKF2372V,resistors
 CRCW06032K20FKEA,resistors
 RC0603FR-0756RL,resistors
 CRCW08051K60FKEA,resistors
@@ -39,7 +39,7 @@ CRCW12061R00FKEA,resistors
 ERA6AEB202V,resistors
 CRCW020147K0FNED,resistors
 CRCW0402120RFKED,resistors
-CRCW04022K20FKED,resistors
+CRCW060347R0FKEAHP,resistors
 RC2512FK-0722RL,resistors
 CRCW060322K0FKEA,resistors
 ERA6AEB103V,resistors
@@ -165,7 +165,7 @@ HLMP-3950,led diodes
 19041253,led diodes
 598-8130-107F,led diodes
 10-2K19.1052,led diodes
-597-3901-830F,led diodes
+KPBA-3010SURKMGKC,led diodes
 677-501-23,led diodes
 19040257,led diodes
 19080350,led diodes
@@ -184,50 +184,50 @@ HSMG-C280,led diodes
 KPG-1608SYKC-T,led diodes
 KPTD-3216ZGC,led diodes
 KPT-3216SYCK,led diodes
-KPTL-3216QBC-D,led diodes
+HSMF-C116,led diodes
 KA-2810ASYSK,led diodes
 HSMA-A401-U45M1,led diodes
 KA-2810ACGSK,led diodes
 SML-E12D8WT86,led diodes
 VLMR233T2V2-GS08,led diodes
 SML-811UTT86A,led diodes
-SML-S13UTT68,led diodes
+MSL0104RGBU1,led diodes
 TLHK5800,led diodes
 VLMS333T2V2-GS08,led diodes
 ALMD-LG37-XZ002,led diodes
 HSMC-C170-T0000,led diodes
-SML-D15U2WT86,led diodes
+ASMB-MTB1-0B3A2,led diodes
 SML-H12U8TT86C,led diodes
-SML-822MV8WT86,led diodes
-SML-D15VWT86,led diodes
-SML-D14VWT86C,led diodes
+598-8410-207CF,led diodes
+QBLP617-AG1,led diodes
+QBLP655R-AG1,led diodes
 KPHD-1608LVSURCK,led diodes
-SML-D13UWT86C,led diodes
+QBLP675-IG,led diodes
 HSMC-C191-T0000,led diodes
 KPTD-2012LVSURCK,led diodes
-HSMF-C115,led diodes
-SML-811UTT86C,led diodes
+QBLP675-AG1-2897,led diodes
+QBLP615-AG1,led diodes
 ASMB-TTF2-0B20B,led diodes
-SML-D13VWT86C,led diodes
-SML-D14U2WT86C,led diodes
-SML-Z14VTT86A,led diodes
-SML-011VTT86A,led diodes
-SML-Z14V4TT86,led diodes
-SML-Z14U4TT86,led diodes
-SMLVN6RGB7W1,led diodes
-SML-522MUWT86,led diodes
+KP-2012MGC,led diodes
+KPH-1608SGC,led diodes
+KPTL-3216CGCK-01,led diodes
+KPT-2012CGCK,led diodes
+KPT-3216SGC,led diodes
+KPHCM-2012CGCK,led diodes
+KP-2012CGCK,led diodes
+KP-1608CGCK,led diodes
 SMLVN6RGB1W1,led diodes
-SML-D13U8WT86,led diodes
+KP-3216SGC,led diodes
 SML-A12V8TT86,led diodes
 SMLVN6RGB1U1,led diodes
 VLDR1235G,led diodes
 ASMB-LTC3-0D335,led diodes
 VLMB41P1Q2-GS08,led diodes
-VLMK234ABCA-GS08,led diodes
+HSMG-C190,led diodes
 VLMO30L1M2-GS18,led diodes
 534-997-63,led diodes
 534-930-63,led diodes
-XB4BV63,led diodes
+HSMM-C170,led diodes
 XVLA333,led diodes
 QS81XXR12,led diodes
 QS101XXO24,led diodes
@@ -255,7 +255,7 @@ SML-LX23IC-TR,led diodes
 SSL-LX5093USBC,led diodes
 HSMS-C120,led diodes
 SSL-LX5093GD-5V,led diodes
-HSMY-A100-L00J1,led diodes
+KP-1608MGC,led diodes
 SML-LXR44GC-TR,led diodes
 102387-1,connectors
 PHR-6,connectors
@@ -324,7 +324,7 @@ STW70N60M2,transistors
 STD10P6F6,transistors
 STW8N90K5,transistors
 IPP60R160P6XKSA1,transistors
-BUK7Y2R5-40HX,transistors
+NVMFS5C612NLAFT1G,transistors
 STF12N120K5,transistors
 CAB450M12XM3,transistors
 SIR626DP-T1-RE3,transistors
@@ -342,7 +342,7 @@ STP4N80K5,transistors
 DMT69M8LFV-7,transistors
 IPP114N12N3GXKSA1,transistors
 STP20N90K5,transistors
-SI7190ADP-T1-RE3,transistors
+IRFH5302TRPBF,transistors
 C3M0075120K,transistors
 IPD60R650CEAUMA1,transistors
 RQ5A040ZPTL,transistors
@@ -367,7 +367,7 @@ STD10N60M2,transistors
 STS10DN3LH5,transistors
 DMN3016LDV-7,transistors
 FMMTA92TA,transistors
-FMMTA42,transistors
+SIR876BDP-T1-RE3,transistors
 DSS20200L-7,transistors
 BCW66HTA,transistors
 BC807-16LT1G,transistors
@@ -392,80 +392,80 @@ IRL40S212ARMA1,transistors
 NTD280N60S5Z,transistors
 ISZ056N03LF2SATMA1,transistors
 IPTC017N12NM6ATMA1,transistors
-CY8C29466-24PVXI,microcontrollers
-STM8L101F3P6TR,microcontrollers
+STM32F100VCT6B,microcontrollers
+STM32F103VGT6,microcontrollers
 STM8S103K3T6C,microcontrollers
 STM8S005K6T6C,microcontrollers
-STM8AF5288TAY,microcontrollers
+STM32F103RGT6,microcontrollers
 STM8S105K4T3C,microcontrollers
 STM8L151G6U3,microcontrollers
 STM8S005C6T6,microcontrollers
-C8051F060-GQ,microcontrollers
+STM32L151RDT6,microcontrollers
 C8051F011-GQ,microcontrollers
 C8051F344-GQ,microcontrollers
 MC9S08GT32ACFBE,microcontrollers
 MC9S08GT32ACFDE,microcontrollers
-C8051F410-GQ,microcontrollers
+STM32F405RGT6V,microcontrollers
 MSP430G2231IPW14,microcontrollers
-MSP430F2013IRSAT,microcontrollers
+STM32F103TBU6,microcontrollers
 MSP430G2001IPW14,microcontrollers
 MSP430FR5969IRGZR,microcontrollers
-MSP430G2230IDR,microcontrollers
-MSP430F148IPMR,microcontrollers
+STM32F446RCT6,microcontrollers
+STM32F401CEU6,microcontrollers
 MSP430F5359IPZ,microcontrollers
-MSP430F2012IPWR,microcontrollers
-MSP430G2553IRHB32R,microcontrollers
-MSP430F2013IPWR,microcontrollers
-MSP430G2553IN20,microcontrollers
+STM32L476RCT6,microcontrollers
+STM32F091CBT6,microcontrollers
+STM32L051R8T6,microcontrollers
+STM32F765ZGT6,microcontrollers
 MSP430G2112IN20,microcontrollers
 MSP430FR2533IRHBT,microcontrollers
-MSP430F135IPMR,microcontrollers
-MSP430F5172IRSBT,microcontrollers
+STM32L052K8T6,microcontrollers
+STM32L151RBT6A,microcontrollers
 MSP430F435IPZ,microcontrollers
 MSP430FR2100IRLLT,microcontrollers
 MSP430F1121AIPW,microcontrollers
 MSP430G2203IN20,microcontrollers
 MSP430F248TPM,microcontrollers
-MSP430G2202IN20,microcontrollers
+STM32L031K6T6,microcontrollers
 MSP430G2353IN20,microcontrollers
-MSP430F5438AIPZR,microcontrollers
+STM32G473CET6,microcontrollers
 MSP430G2252IPW20,microcontrollers
-MSP430G2332IPW14,microcontrollers
-MSP430F1232IDW,microcontrollers
-MSP430FR5728IRGET,microcontrollers
-MSP430F2617TPM,microcontrollers
-MSP430FG4618IPZ,microcontrollers
-MSP430G2453IPW28,microcontrollers
-MSP430FR5739IDA,microcontrollers
-MSP430G2302IPW14,microcontrollers
-MSP430F5528IRGCR,microcontrollers
-MSP430F435IPN,microcontrollers
-MSP430F2274IRHAT,microcontrollers
-MSP430F2252IDA,microcontrollers
-MSP430F6638IPZR,microcontrollers
-MSP430F2012IN,microcontrollers
-MSP430F156IPM,microcontrollers
-MSP430F123IPW,microcontrollers
-MSP430F6659IPZ,microcontrollers
-MSP430F5342IRGZR,microcontrollers
-MSP430F5171IRSBT,microcontrollers
-MSP430G2433IRHB32T,microcontrollers
+STM32L031F6P6,microcontrollers
+STM32H750VBT6,microcontrollers
+STM32L422KBT6,microcontrollers
+STM32H743VIT6,microcontrollers
+STM32G491MET6,microcontrollers
+STM32G030K6T6,microcontrollers
+STM32F423RHT6,microcontrollers
+STM32G071CBT6,microcontrollers
+STM32L431RCT6,microcontrollers
+STM32F103VFT6,microcontrollers
+LPC5502JBD64E,microcontrollers
+LPC802M001JDH16FP,microcontrollers
+STM32H743ZIT6,microcontrollers
+STM32L433RCT6P,microcontrollers
+STM32L412KBT6,microcontrollers
+STM32G031F4P6,microcontrollers
+STM32F410CBT6,microcontrollers
+LPC4370FET256E,microcontrollers
+STM32L475VGT6,microcontrollers
+STM32F439NIH6,microcontrollers
 MSP430F5325IPN,microcontrollers
-MSP430F425IPM,microcontrollers
-MSP430F427IPM,microcontrollers
-MSP430F5528IRGCT,microcontrollers
-MSP430F2132IRHBT,microcontrollers
-MSP430F2619TPM,microcontrollers
-MSP430G2452IPW14,microcontrollers
-MSP430F5418AIPN,microcontrollers
-MSP430F423AIPM,microcontrollers
+STM32F411VET6,microcontrollers
+STM32F777NIH6,microcontrollers
+STM32G081RBT6,microcontrollers
+STM32L552RCT6,microcontrollers
+STM32G071RBT6,microcontrollers
+STM32G030K8T6,microcontrollers
+STM32G030C8T6,microcontrollers
+STM32G030F6P6,microcontrollers
 MSP430FR2632IYQWT,microcontrollers
-STM32F439IIT6,microcontrollers
+STM32F042C6T6,microcontrollers
 STM32F105R8T6,microcontrollers
 STM32F103RET7,microcontrollers
 STM32F429IIT6,microcontrollers
 STM32F103C8T7,microcontrollers
-MK64FN1M0VLQ12,microcontrollers
+STM32L412C8T6,microcontrollers
 STM32F303CCT6,microcontrollers
 STM32F427ZIT6,microcontrollers
 STM32F373VCT6,microcontrollers
@@ -473,7 +473,7 @@ STM32F405VGT7,microcontrollers
 STM32F405RGT6,microcontrollers
 STM32F429NIH6,microcontrollers
 STM32F767VIT6,microcontrollers
-LPC822M101JDH20J,microcontrollers
+STM32F469BIT6,microcontrollers
 STM32F091RCT6,microcontrollers
 STM32F429ZET6,microcontrollers
 STM32F429BIT6,microcontrollers
@@ -483,7 +483,7 @@ STM32F745VGT6,microcontrollers
 STM32L476VGT6,microcontrollers
 STM32L100RBT6A,microcontrollers
 STM32L476RGT6,microcontrollers
-STM32L486QGI6,microcontrollers
+STM32F103C8T6TR,microcontrollers
 STM32L051K8U6,microcontrollers
 STM32F401CDY6TR,microcontrollers
 STM32L151C8T6A,microcontrollers
@@ -530,7 +530,7 @@ C0402C123K4RACTU,capacitors
 C0805C470F5GACTU,capacitors
 STM32L011G4U6,microcontrollers
 STM32H753BIT6,microcontrollers
-STM32L431RBY6TR,microcontrollers
+STM32L452RCT6,microcontrollers
 VLMS31K1L2-GS08,led diodes
 NSS40201LT1G,transistors
 MJB44H11T4G,transistors
@@ -589,7 +589,7 @@ PM16S2024S32,connectors
 DF62-2428SCF,connectors
 GT25-2024SCF,connectors
 GT25-2428SCF,connectors
-DF19-2830SCFA,connectors
+009286001316906,connectors
 DF62W-9S-2.2C,connectors
 DF3-2428SCF,connectors
 DF65-2428SCF,connectors
@@ -598,4 +598,4 @@ DF1B-10DEP-2.5RC,connectors
 DF1B-12DS-2.5RC,connectors
 DF11-2428SCF,connectors
 VLRK31R1S2-GS08,led diodes
-VLMW41S1T1-5K8L-18,led diodes
+KPT-1608CGCK,led diodes

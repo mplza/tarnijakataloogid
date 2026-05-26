@@ -215,11 +215,11 @@ def laadi_kataloogid(**context):
             symbol_info = _otsimise_symbolid(token, mpn)
             token_count += 1
 
-            # Filtreeri ainult MPN-iga matchivad variandid (TME tagastab ka lahtisi vasteid)
+            # Filtreeri ainult täpse MPN-iga matchivad variandid
             mu = mpn.upper()
             symbol_info = {
                 s: i for s, i in symbol_info.items()
-                if mu in s.upper() or s.upper() in mu
+                if s.upper() == mu
             }
             symbolid = list(symbol_info.keys())
 
