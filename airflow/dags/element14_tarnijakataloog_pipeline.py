@@ -35,7 +35,7 @@ E14_VASTUSE_GRUPP = "large"
 E14_POOD = "uk.farnell.com"
 E14_VALUUTA = "GBP"
 E14_OTSINGU_PIIR = 5    # maksimaalne variantide arv MPN-i kohta
-RETRY_KATSEID = 3       # mitu korda HTTP päringut proovida transient vea puhul
+RETRY_KATSEID = 5       # mitu korda HTTP päringut proovida transient vea puhul
 FX_API_BASE = "https://api.frankfurter.app"
 GBP_EUR_FALLBACK = 1.18  # GBP→EUR fallback kurss kui Frankfurter API ei vasta
 # PAKETI_SUURUS pole, sest E14 tagastab hinnad ja laoseisu ühe päringuga.
@@ -43,7 +43,7 @@ GBP_EUR_FALLBACK = 1.18  # GBP→EUR fallback kurss kui Frankfurter API ei vasta
 
 def _paringus_retry(fn, *args, **kwargs):
     """Käivita HTTP funktsioon retry-loogikaga SSL/Connection/Timeout vigade puhul.
-    Kasutab exponential backoff (1s, 2s, 4s)."""
+    Kasutab exponential backoff (1s, 2s, 4s, 8s, 16s; ülempiir 30s)."""
     last_err = None
     for katse in range(RETRY_KATSEID):
         try:
@@ -52,7 +52,7 @@ def _paringus_retry(fn, *args, **kwargs):
                 requests.exceptions.ConnectionError,
                 requests.exceptions.Timeout) as e:
             last_err = e
-            time.sleep(2 ** katse)
+            time.sleep(min(30, 2 ** katse))
     raise last_err
 
 
