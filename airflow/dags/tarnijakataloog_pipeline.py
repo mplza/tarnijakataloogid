@@ -39,12 +39,12 @@ TME_VALUUTA = "EUR"
 TME_OTSINGU_PIIR = 100   # maksimaalne toodete arv otsingu kohta
 TME_PAKETI_SUURUS = 25   # maksimaalne sümbolite arv /products/data päringu kohta
 TOKEN_PARINGUTE_LIMIIT = 40  # uuenda token enne 5-min aegumist (~50 päringu juures)
-RETRY_KATSEID = 3            # mitu korda HTTP päringut proovida transient vea puhul
+RETRY_KATSEID = 5            # mitu korda HTTP päringut proovida transient vea puhul
 
 
 def _paringus_retry(fn, *args, **kwargs):
     """Käivita HTTP funktsioon retry-loogikaga SSL/Connection/Timeout vigade puhul.
-    Kasutab exponential backoff (1s, 2s, 4s)."""
+    Kasutab exponential backoff (1s, 2s, 4s, 8s, 16s; ülempiir 30s)."""
     last_err = None
     for katse in range(RETRY_KATSEID):
         try:
@@ -53,7 +53,7 @@ def _paringus_retry(fn, *args, **kwargs):
                 requests.exceptions.ConnectionError,
                 requests.exceptions.Timeout) as e:
             last_err = e
-            time.sleep(2 ** katse)
+            time.sleep(min(30, 2 ** katse))
     raise last_err
 
 
