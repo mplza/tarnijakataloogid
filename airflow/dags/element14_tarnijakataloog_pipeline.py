@@ -244,7 +244,7 @@ with DAG(
         task_id="dbt_seed",
         bash_command=(
             "cd /opt/airflow/dbt_project && "
-            "dbt seed --profiles-dir ."
+            "dbt seed --full-refresh --profiles-dir ."
         ),
     )
 

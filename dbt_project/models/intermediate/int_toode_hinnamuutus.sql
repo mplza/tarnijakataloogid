@@ -19,6 +19,7 @@ WITH base AS (
         s.hind_eur,
         s.loplik_hind,
         s.valuuta,
+        s.min_kogus,
         s.laoseis,
         s.on_laost_otsas,
         s.kategooria,
