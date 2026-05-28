@@ -293,7 +293,7 @@ def laadi_kataloogid(**context):
 
 
 with DAG(
-    dag_id="tarnijakataloog_pipeline",
+    dag_id="tme_tarnijakataloog_pipeline",
     description="Laeb elektroonikakataloogid TME API-st MPN-i kaupa ja käivitab dbt transformatsioonid",
     schedule="@daily",
     start_date=datetime(2025, 1, 1),
@@ -305,7 +305,7 @@ with DAG(
         task_id="dbt_seed",
         bash_command=(
             "cd /opt/airflow/dbt_project && "
-            "dbt seed --profiles-dir ."
+            "dbt seed --full-refresh --profiles-dir ."
         ),
     )
 
