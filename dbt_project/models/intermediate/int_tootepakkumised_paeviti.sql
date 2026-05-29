@@ -9,6 +9,7 @@ WITH base AS (
     SELECT
         s.tarnija_kood,
         s.nimi,
+        s.mpn,
         s.tootja,
         s.laetud_kuupaev,
         s.kategooria,
@@ -25,6 +26,7 @@ tarnija_kood,
 tarnija_nimi,
 tootja, 
 nimi as toote_nimi, 
+mpn,
 kategooria  
     FROM base
 

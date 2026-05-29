@@ -5,7 +5,7 @@
 -- 4. Elektroonikakomponentide kategooriate arv
 
 SELECT laetud_kuupaev,
-       count(distinct toote_nimi) AS unikaalsed_tooted,
+       count(distinct mpn) AS unikaalsed_tooted,
        count(distinct tootja) AS unikaalsed_tootjad,
        count(distinct kategooria) AS unikaalsed_kategooriad,
        count(distinct tarnija_kood) AS unikaalsed_tarnijad
