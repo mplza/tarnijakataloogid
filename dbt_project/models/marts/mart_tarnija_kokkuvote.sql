@@ -14,9 +14,9 @@ koond AS (
         i.riik,
         i.laetud_kuupaev,
         COUNT(*)                                            AS toodete_arv,
-        ROUND(AVG(i.hind), 4)                              AS kesk_hind,
-        ROUND(MIN(i.hind), 4)                              AS min_hind,
-        ROUND(MAX(i.hind), 4)                              AS max_hind,
+        ROUND(AVG(i.hind_eur), 4)                          AS kesk_hind_eur,
+        ROUND(MIN(i.hind_eur), 4)                          AS min_hind_eur,
+        ROUND(MAX(i.hind_eur), 4)                          AS max_hind_eur,
         SUM(CASE WHEN i.on_laost_otsas THEN 1 ELSE 0 END)  AS laost_otsas_arv,
         COUNT(DISTINCT i.kategooria)                        AS kategooriate_arv,
         COUNT(*) FILTER (WHERE i.hinna_suund = 'Hinnatõus')
