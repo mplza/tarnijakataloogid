@@ -32,7 +32,7 @@ WITH base AS (
     FROM {{ ref('stg_tooted') }} s
     LEFT JOIN {{ ref('tarnijad') }} t
         ON s.tarnija_kood = t.tarnija_kood
-        WHERE hind IS NOT NULL
+    WHERE s.hind IS NOT NULL
 )
 
 SELECT *
