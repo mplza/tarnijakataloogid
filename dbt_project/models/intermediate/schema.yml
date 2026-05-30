@@ -1,0 +1,84 @@
+version: 2
+
+models:
+  - name: int_toode_hinnamuutus
+    description: "Intermediate mudel: päevased hinnamuutused toote kaupa (LAG funktsiooniga)"
+    columns:
+      - name: tarnija_kood
+        description: "Tarnija kood"
+        tests:
+          - not_null
+      - name: sumbol
+        description: "Toote sümbol/SKU"
+        tests:
+          - not_null
+      - name: mpn
+        description: "Manufacturer Part Number"
+        tests:
+          - not_null
+      - name: nimi
+        description: "Toote nimi"
+        tests:
+          - not_null
+      - name: tootja
+        description: "Tootja nimi"
+        tests:
+          - not_null
+      - name: laetud_kuupaev
+        description: "Kuupäev mil andmed laeti"
+        tests:
+          - not_null
+      - name: hind
+        description: "Toote praegune hind"
+        tests:
+          - not_null
+      - name: loplik_hind
+        description: "Lõppkasutaja hind"
+        tests:
+          - not_null
+      - name: eelmine_hind
+        description: "Eelmise päeva hind (LAG funktsiooniga)"
+      - name: hinna_muutus_pct
+        description: "Protsentuaalne hinnamuutus eelmisest päevast"
+      - name: hinna_suund
+        description: "Hinnamuutuse suund"
+      - name: kategooria
+        description: "Toote kategooria"
+        tests:
+          - not_null
+      - name: on_laost_otsas
+        description: "Kas toode on laost otsas"
+        tests:
+          - not_null
+
+  - name: int_tootepakkumised_paeviti
+    description: "Intermediate mudel: päevased unikaalsed saadavalolevad tooted tarnija ja kategooria kaupa"
+    columns:
+      - name: laetud_kuupaev
+        description: "Hetktõmmise kuupäev"
+        tests:
+          - not_null
+      - name: tarnija_kood
+        description: "Tarnija kood"
+        tests:
+          - not_null
+      - name: tarnija_nimi
+        description: "Tarnija nimi"
+        tests:
+          - not_null
+      - name: mpn
+        description: "Manufacturer Part Number"
+        tests:
+          - not_null
+      - name: toote_nimi
+        description: "Toote nimi"
+        tests:
+          - not_null
+      - name: tootja
+        description: "Tootja"
+        tests:
+          - not_null
+      - name: kategooria
+        description: "Toote kategooria"
+        tests:
+          - not_null
