@@ -48,15 +48,15 @@ Otsitavad MPN-id on defineeritud `tooted.csv` seed-failis (600 MPN-i, 6 kategoor
 
 ```mermaid
 flowchart LR
-    SEED["tooted.csv<br/>600 MPN-i"] --> B["Apache Airflow<br/>Orkestreerimine"]
+    SEED["CSV seed-failid<br/>tooted.csv & tarnijad.csv"] --> B["Apache Airflow<br/>Orkestreerimine"]
+    SEED --> F["dbt Core<br/>Transformatsioonid"]
     TME["TME API<br/>api.tme.eu"] --> B
     E14["Farnell API<br/>api.element14.com"] --> B
 
     B --> D[("PostgreSQL / Neon<br/>Andmebaas")]
 
     D --> E["Staging kiht<br/>Toorandmed"]
-    SEED2["tarnijad.csv<br/>Viitetabel"] --> F
-    E --> F["dbt Core<br/>Transformatsioonid"]
+    E --> F
     F --> G["Intermediate kiht"]
     G --> H["Marts kiht"]
 
