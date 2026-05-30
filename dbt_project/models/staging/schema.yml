@@ -6,46 +6,97 @@ sources:
     tables:
       - name: tooted_raw
         description: "Tarnijakataloogide toorandmed päevaste hetktõmmistena (TME + Farnell)"
+      - name: pipeline_runs
+        description: "Pipeline käivituste auditiloog"
+
+vars:
+  dbt_utils_dispatch_list:
+    - macro_namespace: dbt_utils
+      search_order: ['tarnijakataloogid_dbt', 'dbt_utils']
 
 models:
   - name: stg_tooted
-    description: "Puhastatud ja rikastatud tarnijakataloogi andmed"
+    description: "Puhastatud ja rikastatud tarnijakataloogi andmed (staging mudel)"
     columns:
       - name: run_id
-        description: "Pipeline käivituse ID"
+        description: "Pipeline käivituse ID (unikaalne ID iga DAG käivituse kohta)"
         tests:
           - not_null
       - name: tarnija_kood
-        description: "Tarnija kood (allikas)"
+        description: "Tarnija kood (allikas): TME või FARNELL"
         tests:
           - not_null
-          - accepted_values:
-              values: ["TME", "FARNELL"]
+          - relationships:
+              to: ref('tarnijad')
+              field: tarnija_kood
       - name: sumbol
-        description: "Poe enda sisemine kood (TME symbol või Farnell SKU)"
+        description: "Poe enda sisemine kood (TME symbol või Farnell SKU) — primaarvõtme osa"
         tests:
           - not_null
       - name: mpn
         description: "Tootja-osakood (Manufacturer Part Number) tooted.csv seedist"
         tests:
           - not_null
-      - name: kategooria
-        description: "Toote kategooria tooted.csv seedist"
+      - name: nimi
+        description: "Toote kirjeldus/nimetus"
         tests:
           - not_null
-          - accepted_values:
-              values: ["resistors", "capacitors", "microcontrollers", "led diodes", "connectors", "transistors"]
+      - name: tootja
+        description: "Tootja nimi"
+        tests:
+          - not_null
+      - name: kategooria
+        description: "Toote kategooria (seedist tooted.csv)"
+        tests:
+          - not_null
       - name: hind
-        description: "Ühiku hind väikseimal kogusetasandil"
+        description: "Ühiku hind väikseimal kogusetasandil (EUR/GBP)"
         tests:
           - not_null
       - name: loplik_hind
-        description: "Toote hind pärast allahindlust"
+        description: "Toote hind pärast allahindlust (sama kui hind praegu)"
         tests:
           - not_null
       - name: min_kogus
-        description: "Minimaalne tellitav kogus salvestatud hinna juures"
-      - name: laetud_kuupaev
-        description: "Hetktõmmise kuupäev"
+        description: "Minimaalne tellitav kogus salvestatud hinna juures (võib olla NULL)"
+      - name: valuuta
+        description: "Valuuta kood (EUR või GBP)"
         tests:
           - not_null
+      - name: laoseis
+        description: "Laos olevate ühikute arv (võib olla NULL)"
+      - name: on_laost_otsas
+        description: "Tõeväärtus: kas toode on laost otsas (laoseis = 0 või NULL)"
+        tests:
+          - not_null
+      - name: laetud_kell
+        description: "Hetktõmmise ajatempel (UTC)"
+        tests:
+          - not_null
+      - name: laetud_kuupaev
+        description: "Hetktõmmise kuupäev (primaarvõtme osa)"
+        tests:
+          - not_null
+      - name: aasta
+        description: "Aasta extraktitud laetud_kuupaevast"
+      - name: kuu
+        description: "Kuu extraktitud laetud_kuupaevast"
+
+  - name: tarnijad
+    description: "Tarnijate viitetabel (seed)"
+    columns:
+      - name: tarnija_kood
+        description: "Tarnija unikaalne kood"
+        tests:
+          - not_null
+          - unique
+      - name: tarnija_nimi
+        description: "Tarnija nimi"
+        tests:
+          - not_null
+      - name: api_kategooria
+        description: "API otsingukategooria"
+      - name: riik
+        description: "Riik kus tarnija asub"
+      - name: on_aktiivne
+        description: "Kas tarnija on praegu aktiivne"
