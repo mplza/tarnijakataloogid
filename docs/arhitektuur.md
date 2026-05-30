@@ -28,17 +28,17 @@ Millised elektroonikakomponendid on erinevate tarnijate ja tootjate lõikes kõi
 
 Andmed tulevad TME ja Farnell API-st (elektroonika hulgimüüjad). Iga toote kohta saame:
 
-| Väli | Kirjeldus |
-|------|-----------|
-| `mpn` | Tootja-osakood (Manufacturer Part Number), mille järgi mõlemast API-st otsitakse |
-| `sumbol` | Poe sisemine tootekood (TME symbol / Farnell SKU) |
-| `nimi` | Toote nimetus |
-| `tootja` | Tootja (nt VISHAY, STMicroelectronics) |
-| `kategooria` | Tootekategooria (resistors, capacitors, microcontrollers, led diodes, transistors, connectors) |
-| `hind` | Ühiku hind väikseimal kogusetasandil |
-| `valuuta` | Valuuta (TME: EUR, Farnell: GBP) |
-| `min_kogus` | Minimaalne tellitav kogus salvestatud hinna juures |
-| `laoseis` | Laos olevate ühikute arv |
+| Väli | Kirjeldus | TME API väli | Farnell API väli |
+|------|-----------|-------------|-----------------|
+| `mpn` | Tootja-osakood (Manufacturer Part Number) | otsingutermin | otsingutermin |
+| `sumbol` | Poe sisemine tootekood | `symbol` | `sku` |
+| `nimi` | Toote nimetus | `description` | `translatedName` |
+| `tootja` | Tootja (nt VISHAY, STMicroelectronics) | `producer` | `brandName` |
+| `kategooria` | Tootekategooria | `tooted.csv` seedist | `tooted.csv` seedist |
+| `hind` | Ühiku hind väikseimal kogusetasandil | `prices.elements[].price` | `prices[].cost` |
+| `valuuta` | Valuuta | `prices.currency` (EUR) | hardcoded (GBP) |
+| `min_kogus` | Minimaalne tellitav kogus | `prices.elements[].amount` | `prices[].from` |
+| `laoseis` | Laos olevate ühikute arv | `stock.amount` | `inv.level` |
 
 Otsitavad MPN-id on defineeritud `tooted.csv` seed-failis (600 MPN-i, 6 kategooriat × 100). MPN-id on valitud nii, et iga MPN annab mõlemas API-s sama unikaalse toote vaste.
 
@@ -48,11 +48,13 @@ Otsitavad MPN-id on defineeritud `tooted.csv` seed-failis (600 MPN-i, 6 kategoor
 
 ```mermaid
 flowchart LR
-    A["TME & Farnell API<br/>Andmeallikad"] --> B["Apache Airflow<br/>Orkestreerimine"]
+    TME["TME API<br/>api.tme.eu"] --> B["Apache Airflow<br/>Orkestreerimine"]
+    E14["Farnell API<br/>api.element14.com"] --> B
     B --> C["Andmete laadimine<br/>API-st andmebaasi"]
     C --> D[("PostgreSQL / Neon<br/>Andmebaas")]
 
     D --> E["Staging kiht<br/>Toorandmed"]
+    SEED["CSV seed-failid<br/>tooted.csv & tarnijad.csv"] --> F
     E --> F["dbt Core<br/>Transformatsioonid"]
     F --> G["Intermediate kiht<br/>Hinnamuutused & pakkumised"]
     G --> H["Marts kiht<br/>KPI-d & hinnavõrdlus"]
