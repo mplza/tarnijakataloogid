@@ -16,5 +16,3 @@ tarnijakataloogid_dbt:
       keepalives_idle: 10
       keepalives_interval: 5
       keepalives_count: 10
-      search_path: public
-      isolation_level: 'autocommit'
