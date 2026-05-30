@@ -180,52 +180,63 @@ def laadi_kataloogid(**context):
     """
     Küsib Element14 APIst iga MPN-i kohta variandid + hinnad ja laoseisu ning
     laadib staging.tooted_raw tabelisse päevase hetktõmmisena.
+
+    Ühendus suletakse enne pikka API-päringut, et vältida Neon jõudeoleku timeout-i.
     """
     hook = PostgresHook(postgres_conn_id="analytics_db")
     run_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc)
     today = date.today()
-    hook.run(
-        """
-        INSERT INTO staging.pipeline_runs
-            (run_id, fetched_at, source_name, laetud_kuupaev, status)
-        VALUES (%s, %s, 'element14', %s, 'running')
-        """,
-        parameters=(run_id, now, today),
-    )
+
+    # Samm 1: Avatud ühendus — salvesta käivitus, loe seed, sulge ühendus
     try:
+        hook.run(
+            """
+            INSERT INTO staging.pipeline_runs
+                (run_id, fetched_at, source_name, laetud_kuupaev, status)
+            VALUES (%s, %s, 'element14', %s, 'running')
+            """,
+            parameters=(run_id, now, today),
+        )
         mpn_kategooriad = _loe_mpn_seed(hook)
-        if not mpn_kategooriad:
-            raise RuntimeError("marts.tooted on tühi — käivita 'dbt seed' enne")
+    except Exception as exc:
+        hook.run(
+            """
+            UPDATE staging.pipeline_runs
+            SET status = 'failed', message = %s
+            WHERE run_id = %s
+            """,
+            parameters=(str(exc)[:500], run_id),
+        )
+        raise
 
-        gbp_eur_kurss = _hangi_gbp_eur_kurss()
+    if not mpn_kategooriad:
+        raise RuntimeError("marts.tooted on tühi — käivita 'dbt seed' enne")
+
+    # Samm 2: API-päringud ilma andmebaasi ühenduseta
+    gbp_eur_kurss = _hangi_gbp_eur_kurss()
+    koik_read = []
+
+    for mpn, kategooria in mpn_kategooriad:
+        tooted = _hangi_tooted(mpn)
+        if not tooted:
+            continue
+
+        for toode in tooted:
+            koik_read.append((
+                run_id, "FARNELL", toode["sku"], mpn,
+                toode["nimi"], toode["tootja"],
+                toode["hind"], toode["valuuta"], gbp_eur_kurss,
+                toode["min_kogus"], toode["laoseis"],
+                kategooria,
+                now, today,
+            ))
+
+    # Samm 3: Avatud ühendus — sisesta kõik read ja uuenda status
+    try:
         kokku_kirjeid = 0
-
-        for mpn, kategooria in mpn_kategooriad:
-            # Hangi variandid (otsing + hinnad + laoseis ühe päringuga)
-            tooted = _hangi_tooted(mpn)
-
-            if not tooted:
-                continue
-
-            # Koosta batch parameetrid INSERT-i jaoks (üks rida iga variandi kohta)
-            batch = []
-            for toode in tooted:
-                batch.append((
-                    run_id, "FARNELL", toode["sku"], mpn,
-                    toode["nimi"], toode["tootja"],
-                    toode["hind"], toode["valuuta"], gbp_eur_kurss,
-                    toode["min_kogus"], toode["laoseis"],
-                    kategooria,
-                    now, today,
-                ))
-
-            if not batch:
-                continue
-
-            # Sisesta batch retry-loogikaga
-            kokku_kirjeid += _db_insert_with_retry(hook, batch)
-
+        if koik_read:
+            kokku_kirjeid = _db_insert_with_retry(hook, koik_read)
 
         hook.run(
             """
@@ -235,7 +246,6 @@ def laadi_kataloogid(**context):
             """,
             parameters=(kokku_kirjeid, run_id),
         )
-
     except Exception as exc:
         hook.run(
             """
