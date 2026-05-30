@@ -207,7 +207,9 @@
 <p>Projekt laeb iga päev automaatselt kuue elektroonikamüüja tootekataloogid <strong>TME API-st</strong>, puhastab ja rikastab andmed <strong>dbt-ga</strong> ning kuvab tulemused <strong>Superseti</strong> armatuurlaudadel.</p>
 
 <div class="pipeline">
-  <div class="pipe-box api">TME API<br><span class="label">andmeallikas</span></div>
+  <div class="pipe-box api">TME API<br><span class="label">andmeallikas 1</span></div>
+  <div class="pipe-arrow">+</div>
+  <div class="pipe-box api">Element14<br><span class="label">andmeallikas 2</span></div>
   <div class="pipe-arrow">→</div>
   <div class="pipe-box airflow">Airflow DAG<br><span class="label">orkestreerimine</span></div>
   <div class="pipe-arrow">→</div>
@@ -250,7 +252,11 @@
   </tr>
   <tr>
     <td><strong>TME API v2</strong></td><td>—</td>
-    <td>Elektroonikamüüja avalik REST API. Annab tootesümbolid, hinnad ja laoseisu. Autentimine OAuth 2.0 Bearer tokeniga (kehtib 5 min).</td>
+    <td>Poola elektroonikamüüja REST API. Annab tootesümbolid, hinnad ja laoseisu. Autentimine OAuth 2.0 Bearer tokeniga (kehtib 5 min).</td>
+  </tr>
+  <tr>
+    <td><strong>Element14 / Farnell UK API</strong></td><td>1.2</td>
+    <td>Briti elektroonikamüüja REST API. Annab tooted koos hindade ja laoseisuga ühest päringust. Autentimine API võtmega URLis (<code>ELEMENT14_API_KEY</code>). Kasutatav pood: <code>uk.farnell.com</code>, vastus JSON-formaadis.</td>
   </tr>
   <tr>
     <td><strong>Docker Compose</strong></td><td>—</td>
@@ -260,8 +266,11 @@
 
 
 <!-- ══════════════════════════════════════════════ 3. ANDMEALLIKAS ═══ -->
-<h2>3. Andmeallikas — TME API</h2>
+<h2>3. Andmeallikad — TME API ja Element14</h2>
 
+<p>Projekt kasutab kahte elektroonikamüüja API-t, kumbki eraldi Airflow DAG-iga.</p>
+
+<h3>TME API v2</h3>
 <p>TME on Poola elektroonikamüüja. Projekt kasutab nende REST API v2 kolme otspunkti:</p>
 
 <ol>
@@ -270,7 +279,7 @@
   <li><code>GET /products/data?symbols[]=…</code> — laeb hinnad ja laoseisu (kuni 50 sümbolit korraga)</li>
 </ol>
 
-<p>Projektis on 6 fiktiivset tarnijat, kellest igaüks vastab ühele TME otsinguterminile:</p>
+<p>TME tarnijad projektis (kood algab <code>RESIST</code>, <code>CAPS</code> jne):</p>
 
 <table class="supplier-table">
   <tr><th>Kood</th><th>Tarnija nimi</th><th>TME otsingutermin</th><th>Riik</th></tr>
@@ -280,6 +289,25 @@
   <tr><td>LED</td><td>LightTech OÜ</td><td>led diodes</td><td>Soome</td></tr>
   <tr><td>SENSOR</td><td>SensorPro OÜ</td><td>sensors</td><td>Eesti</td></tr>
   <tr><td>CONNECT</td><td>ConnectWay AS</td><td>connectors</td><td>Läti</td></tr>
+</table>
+
+<h3>Element14 / Farnell UK API v1.2</h3>
+<p>Element14 (Farnell UK) on Briti elektroonikamüüja. Autentimine käib API võtmega otse URL-parameetrina (<code>ELEMENT14_API_KEY</code>). Üks päring tagastab tooted koos hindade ja laoseisuga:</p>
+
+<ol>
+  <li><code>GET /catalog/products?term=any:…&amp;storeInfo.id=uk.farnell.com&amp;callInfo.apiKey=…&amp;resultsSettings.responseGroup=large</code> — otsib tooted ja laeb hinnad ning laoseisu ühest päringust (kuni 100 toodet korraga)</li>
+</ol>
+
+<p>Element14 tarnijad projektis (kood algab <code>E14_</code>):</p>
+
+<table class="supplier-table">
+  <tr><th>Kood</th><th>Otsingutermin</th></tr>
+  <tr><td>E14_RESIST</td><td>resistors</td></tr>
+  <tr><td>E14_CAPS</td><td>capacitors</td></tr>
+  <tr><td>E14_MCU</td><td>microcontrollers</td></tr>
+  <tr><td>E14_LED</td><td>led diodes</td></tr>
+  <tr><td>E14_SENSOR</td><td>sensors</td></tr>
+  <tr><td>E14_CONNECT</td><td>connectors</td></tr>
 </table>
 
 <div class="callout orange">
@@ -438,6 +466,7 @@
   <li><code>DATABASE_URL</code> — Neoni ühendusstring (nii Airflow kui Superset kasutavad seda)</li>
   <li><code>POSTGRES_HOST / USER / PASSWORD / DB</code> — dbt profiili jaoks eraldi</li>
   <li><code>API_PRIVATE_KEY / API_APP_SECRET</code> — TME OAuth2 kredentsiaalid</li>
+  <li><code>ELEMENT14_API_KEY</code> — Element14/Farnell API võti</li>
   <li><code>SUPERSET_ADMIN_USER / PASSWORD</code> — Superseti admin</li>
 </ul>
 
@@ -453,32 +482,100 @@
   <div class="task"><span class="task-num">1</span><div>Kopeeri <code>cp .env.example .env</code> ja täida andmed (DATABASE_URL, API võtmed)</div></div>
   <div class="task"><span class="task-num">2</span><div>Loo andmebaasis skeemid: <code>psql $DATABASE_URL -f init/01_create_schemas.sql</code></div></div>
   <div class="task"><span class="task-num">3</span><div>Käivita stack: <code>docker compose up -d --build</code> — oota ~2–3 minutit</div></div>
-  <div class="task"><span class="task-num green">4</span><div>Airflow UI: <code>http://localhost:8083</code> (airflow/airflow) → DAGs → tarnijakataloog_pipeline → ▶ Trigger DAG</div></div>
-  <div class="task"><span class="task-num green">5</span><div>Superset: <code>http://localhost:8090</code> → Lisa andmebaasiühendus (Neon DATABASE_URL) → Lisa datasetid marts-skeemist → Loo graafikud</div></div>
+  <div class="task"><span class="task-num green">4</span><div>Airflow UI: <code>http://localhost:8083</code> (airflow/airflow) → DAGs → Vali DAG:
+    <ul style="margin: 0.5rem 0; padding-left: 2rem;">
+      <li><code>tarnijakataloog_pipeline</code> — TME API (EUR)</li>
+      <li><code>element14_tarnijakataloog_pipeline</code> — Farnell/Element14 API (GBP)</li>
+    </ul>
+    → ▶ Trigger DAG</div></div>
+  <div class="task"><span class="task-num green">5</span><div>Superset: <code>http://localhost:8090</code> → Lisa andmebaasiühendus (Neon DATABASE_URL) → Lisa datasetid marts-skeemist:
+    <ul style="margin: 0.5rem 0; padding-left: 2rem;">
+      <li><code>marts.mart_tarnija_kokkuvote</code> — tarnijate võrdlus</li>
+      <li><code>marts.mart_kategooria_hinnajaotus</code> — kategooriate trendid</li>
+      <li><code>marts.mart_KPI</code> — KPI mõõdikud</li>
+      <li><code>marts.mart_TOP10_kallimat_toodet</code> — TOP 10 kalleim toode</li>
+      <li><code>marts.mart_hinnavordlus</code> — hinnavõrdlus TME vs Farnell</li>
+    </ul>
+    → Loo graafikud</div></div>
 </div>
 
 
-<!-- ══════════════════════════════════════════ 10. PROJEKTISTRUKTUUR ═══ -->
-<h2>10. Projektistruktuur</h2>
+<!-- ═══════════════════════════════════ 10. ANDMEKVALITEET (DBT TESTID) ═══ -->
+<h2>10. Andmekvaliteet — 59 automaatset testi</h2>
+
+<p>Iga <code>dbt test</code> käivitusel kontrollitakse <strong>59 automaatset andmekvaliteedi testi</strong>:</p>
+
+<div class="task-list">
+  <div class="task">
+    <span class="task-num" style="background: #3b82f6;">S</span>
+    <div><strong>Staging layer (30 testist)</strong> — kontrollib lähteandmete kvaliteeti:
+      <ul style="margin: 0.5rem 0; padding-left: 2rem;">
+        <li>not_null: run_id, tarnija_kood, sumbol, mpn, nimi, tootja, kategooria, hind, loplik_hind, valuuta, on_laost_otsas, laetud_kell, laetud_kuupaev</li>
+        <li>relationships: tarnija_kood → tarnijad seed</li>
+        <li>unique: tarnijad.tarnija_kood</li>
+      </ul>
+    </div>
+  </div>
+  <div class="task">
+    <span class="task-num" style="background: #ea580c;">I</span>
+    <div><strong>Intermediate layer (17 testist)</strong> — kontrollib transformatsioonide õigsust:
+      <ul style="margin: 0.5rem 0; padding-left: 2rem;">
+        <li>not_null: kriitilised väljad int_toode_hinnamuutus ja int_tootepakkumised_paeviti mudelites</li>
+      </ul>
+    </div>
+  </div>
+  <div class="task">
+    <span class="task-num" style="background: #7c3aed;">M</span>
+    <div><strong>Marts layer (12 testist)</strong> — kontrollib lõppandmete kvaliteeti (Superset jaoks):
+      <ul style="margin: 0.5rem 0; padding-left: 2rem;">
+        <li>not_null: kõik mart-mudelite võtmeväljad</li>
+        <li>unique: mart_KPI.laetud_kuupaev, mart_tarnija_kokkuvote.tarnija_kood</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="callout green">
+  <strong>Testide käivitamine:</strong> <code>dbt test --profiles-dir .</code> — käivitab automaatselt iga DAG-i taskis <code>dbt_test</code>.
+  Kui test ebaõnnestub, logitakse viga Airflow UI-s ja peatab pipeline.
+</div>
+
+
+<!-- ══════════════════════════════════════════ 11. PROJEKTISTRUKTUUR ═══ -->
+<h2>11. Projektistruktuur</h2>
 
 <pre style="font-family:'JetBrains Mono',monospace;font-size:.73rem;background:var(--light);padding:.9rem 1rem;border-radius:8px;border:1px solid var(--border);line-height:1.7;overflow-x:auto">projektitoo-tarnijakataloogid/
 ├── airflow/dags/
-│   └── tarnijakataloog_pipeline.py  ← kogu DAG-i loogika (API + DB kirjutamine)
+│   ├── tarnijakataloog_pipeline.py              ← TME API DAG
+│   └── element14_tarnijakataloog_pipeline.py    ← Farnell/Element14 API DAG
 ├── dbt_project/
-│   ├── seeds/tarnijad.csv           ← tarnijate viitetabel
-│   ├── profiles.yml                 ← dbt ühendusseaded (loeb .env muutujaid)
+│   ├── seeds/
+│   │   ├── tarnijad.csv                         ← tarnijate viitetabel
+│   │   └── tooted.csv                           ← 600 MPN-i viitetabel
+│   ├── profiles.yml                             ← dbt ühendusseaded
 │   └── models/
-│       ├── staging/stg_tooted.sql        ← puhastus, tuletatud väljad
+│       ├── staging/
+│       │   ├── stg_tooted.sql                   ← puhastus, on_laost_otsas flag
+│       │   └── schema.yml                       ← 30 andmekvaliteedi testi
 │       ├── intermediate/
-│       │   └── int_toode_hinnamuutus.sql ← LAG() hinnamuutus + tarnija JOIN
+│       │   ├── int_toode_hinnamuutus.sql        ← LAG() hinnamuutus + tarnija JOIN
+│       │   ├── int_tootepakkumised_paeviti.sql  ← päevased unikaalsed tooted
+│       │   └── schema.yml                       ← 17 andmekvaliteedi testi
 │       └── marts/
-│           ├── mart_tarnija_kokkuvote.sql        ← Supersetile
-│           └── mart_kategooria_hinnajaotus.sql   ← Supersetile
-├── init/01_create_schemas.sql       ← skeemide loomine (käita üks kord)
-├── superset/superset_config.py      ← Superseti konfiguratsioon
-├── compose.yml                      ← kõik Docker teenused
-├── Dockerfile.superset              ← kohandatud Superset image
-└── .env.example                     ← mallina, täida oma andmetega</pre>
+│           ├── mart_tarnija_kokkuvote.sql       ← tarnijate võrdlus (Superset)
+│           ├── mart_kategooria_hinnajaotus.sql  ← kategooriate trendid (Superset)
+│           ├── mart_KPI.sql                     ← KPI mõõdikud (Superset)
+│           ├── mart_TOP10_kallimat_toodet.sql   ← TOP 10 kalleim (Superset)
+│           ├── mart_hinnavordlus.sql            ← TME vs Farnell võrdlus (Superset)
+│           └── schema.yml                       ← 12 andmekvaliteedi testi
+├── docs/
+│   └── arhitektuur.md                           ← detaitiline tehniline dokumenatsioon
+├── init/01_create_schemas.sql                   ← skeemide loomine (käita üks kord)
+├── superset/superset_config.py                  ← Superseti konfiguratsioon
+├── compose.yml                                  ← kõik Docker teenused
+├── Dockerfile.superset                          ← kohandatud Superset image
+├── README.md                                    ← projekti dokumentatsioon
+└── .env.example                                 ← mallina, täida oma andmetega</pre>
 
 <footer>
   Dokument genereeritud mai 2026 · Andmeinseneeria projektitöö · HARNO täiendkoolitusprogramm
