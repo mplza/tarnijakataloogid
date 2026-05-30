@@ -13,6 +13,8 @@ tarnijakataloogid_dbt:
       sslmode: require
       connect_timeout: 60
       keepalives: 1
-      keepalives_idle: 30
-      keepalives_interval: 10
-      keepalives_count: 5
+      keepalives_idle: 10
+      keepalives_interval: 5
+      keepalives_count: 10
+      search_path: public
+      isolation_level: 'autocommit'
