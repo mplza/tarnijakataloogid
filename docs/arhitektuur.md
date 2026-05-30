@@ -33,10 +33,10 @@ Andmed tulevad TME ja Farnell API-st (elektroonika hulgimüüjad). Iga toote koh
 | `nimi` | Toote nimetus |
 | `tootja` | Tootja |
 | `kategooria` | Tootekategooria (resistors, capacitors, microcontrollers, led diodes, sensors, connectors) |
-| `hind` | Ühiku hind (EUR) |
+| `hind` | Ühiku hind (EUR/GBP) |
 | `laoseis` | Laos olevate ühikute arv |
 
-Iga päev laetakse 6 kategooria tooted. Iga päev salvestatakse eraldi snapshot, et näha muutusi.
+Iga päev laetakse 6 kategooria tooted mõlemast API-st (TME ja Farnell). Iga päev salvestatakse eraldi snapshot, et näha muutusi.
 
 ## Andmevoog
 
@@ -81,4 +81,4 @@ flowchart LR
 
 ## Privaatsus ja turve
 
-Projektis isikuandmeid ei ole — TME API tagastab ainult tootekataloogide infot (hinnad, laoseis, toodete nimed). Andmebaasi paroolid ja API võtmed on `.env` failis, mis on `.gitignore`-s.
+Projektis isikuandmeid ei ole — TME ja Farnell API-d tagastavad ainult tootekataloogide infot (hinnad, laoseis, toodete nimed). Andmebaasi paroolid ja API võtmed on `.env` failis, mis on `.gitignore`-s.

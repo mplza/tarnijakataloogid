@@ -2,23 +2,28 @@
 E-poe tarnijakataloogide pipeline — TME API → staging → dbt run → dbt test
 
 Lihtne järjestikune DAG:
-    laadi_kataloogid >> dbt_run >> dbt_test
+    dbt_seed >> laadi_kataloogid >> dbt_run >> dbt_test
 
 Ajakava: iga päev (@daily), catchup=False — vahele jäänud käivitusi ei korrata.
 
 Andmeallikas: TME (Transfer Multisort Elektronik) API v2 — elektroonikamüüja.
 Autentimine: OAuth 2.0 client_credentials.
     1. POST /auth/token (Basic Auth: API_PRIVATE_KEY:API_APP_SECRET) → Bearer token
-    2. GET /products/search?phrase=... → tootesümbolite nimekiri
+    2. GET /products/search?phrase=<MPN> → variantide leidmine MPN-i järgi
     3. GET /products/data?symbols[]=...&scope[]=prices&scope[]=stock → hinnad ja laoseis
 
-Esimesel käivitusel laaditakse kõigi kategooriate tooted täismahus.
+MPN-id loetakse marts.tooted seed-tabelist (täidetud `dbt seed` poolt enne).
+Iga MPN võib anda mitu varianti (eri tootjad, pakendid) — kõik salvestatakse.
+Hind võetakse väikseima `amount`-iga tasandilt (qty=1 või vähim ostukogus).
+
+Esimesel käivitusel laaditakse kõik MPN-id täismahus.
 Järgmistel käivitustel salvestatakse uus päevane hetktõmmis (snapshot).
 ON CONFLICT DO NOTHING tagab, et sama päeva andmeid ei dubleerita.
 """
 
 import base64
 import os
+import time
 import uuid
 from datetime import date, datetime, timezone
 
@@ -28,22 +33,28 @@ from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
-# Tarnijate nimekiri: (tarnija_kood, tme_otsingutermin)
-# Peab ühtima seeds/tarnijad.csv failiga.
-TARNIJAD = [
-    ("RESIST", "resistors"),
-    ("CAPS", "capacitors"),
-    ("MCU", "microcontrollers"),
-    ("LED", "led diodes"),
-    ("SENSOR", "sensors"),
-    ("CONNECT", "connectors"),
-]
-
 TME_API_BASE = "https://api.tme.eu"
 TME_RIIK = "EE"
 TME_VALUUTA = "EUR"
 TME_OTSINGU_PIIR = 100   # maksimaalne toodete arv otsingu kohta
 TME_PAKETI_SUURUS = 25   # maksimaalne sümbolite arv /products/data päringu kohta
+TOKEN_PARINGUTE_LIMIIT = 40  # uuenda token enne 5-min aegumist (~50 päringu juures)
+RETRY_KATSEID = 5            # mitu korda HTTP päringut proovida transient vea puhul
+
+
+def _paringus_retry(fn, *args, **kwargs):
+    """Käivita HTTP funktsioon retry-loogikaga SSL/Connection/Timeout vigade puhul.
+    Kasutab exponential backoff (1s, 2s, 4s, 8s, 16s; ülempiir 30s)."""
+    last_err = None
+    for katse in range(RETRY_KATSEID):
+        try:
+            return fn(*args, **kwargs)
+        except (requests.exceptions.SSLError,
+                requests.exceptions.ConnectionError,
+                requests.exceptions.Timeout) as e:
+            last_err = e
+            time.sleep(min(30, 2 ** katse))
+    raise last_err
 
 
 def _hangi_token() -> str:
@@ -54,7 +65,8 @@ def _hangi_token() -> str:
     private_key = os.environ["API_PRIVATE_KEY"]
     app_secret = os.environ["API_APP_SECRET"]
     credentials = base64.b64encode(f"{private_key}:{app_secret}".encode()).decode()
-    resp = requests.post(
+    resp = _paringus_retry(
+        requests.post,
         f"{TME_API_BASE}/auth/token",
         headers={
             "Authorization": f"Basic {credentials}",
@@ -72,7 +84,8 @@ def _otsimise_symbolid(token: str, otsingutermin: str) -> dict:
     Otsib TME API-st tooteid otsinguterminiga.
     Tagastab: {symbol: {nimi, tootja}} sõnastiku.
     """
-    resp = requests.get(
+    resp = _paringus_retry(
+        requests.get,
         f"{TME_API_BASE}/products/search",
         headers={"Authorization": f"Bearer {token}"},
         params=[
@@ -103,8 +116,9 @@ def _otsimise_symbolid(token: str, otsingutermin: str) -> dict:
 
 def _hangi_hinnad_laoseis(token: str, symbolid: list) -> dict:
     """
-    Laeb TME-st hinnad ja laoseisu korraga (max 50 sümbolit päringu kohta).
-    Tagastab: {symbol: {hind, valuuta, laoseis}} sõnastiku.
+    Laeb TME-st hinnad ja laoseisu korraga (max 25 sümbolit päringu kohta).
+    Hind võetakse väikseima `amount`-iga tasandilt (qty=1 või vähim ostukogus).
+    Tagastab: {symbol: {hind, valuuta, min_kogus, laoseis}} sõnastiku.
     """
     andmed = {}
     for i in range(0, len(symbolid), TME_PAKETI_SUURUS):
@@ -117,7 +131,8 @@ def _hangi_hinnad_laoseis(token: str, symbolid: list) -> dict:
         ]
         for sym in pakett:
             params.append(("symbols[]", sym))
-        resp = requests.get(
+        resp = _paringus_retry(
+            requests.get,
             f"{TME_API_BASE}/products/data",
             headers={"Authorization": f"Bearer {token}"},
             params=params,
@@ -131,24 +146,40 @@ def _hangi_hinnad_laoseis(token: str, symbolid: list) -> dict:
                 continue
             prices = el.get("prices") or {}
             price_list = prices.get("elements") or []
-            hind = price_list[0].get("price") if price_list else None
+            # Vali väikseima amount-iga hinnatasand (qty=1 või vähim ostukogus)
+            tier = min(price_list, key=lambda p: p.get("amount") or 999999) if price_list else None
+            hind = tier.get("price") if tier else None
+            min_kogus = tier.get("amount") if tier else None
             valuuta = prices.get("currency") or TME_VALUUTA
             laoseis = el.get("stock_quantity")
-            andmed[sym] = {"hind": hind, "valuuta": valuuta, "laoseis": laoseis}
+            andmed[sym] = {
+                "hind": hind,
+                "valuuta": valuuta,
+                "min_kogus": min_kogus,
+                "laoseis": laoseis,
+            }
     return andmed
+
+
+def _loe_mpn_seed(hook: PostgresHook) -> list:
+    """Loe MPN-id ja kategooriad marts.tooted seed-tabelist (dbt seed täidab)."""
+    return hook.get_records(
+        "SELECT mpn, kategooria FROM marts.tooted ORDER BY kategooria, mpn"
+    )
 
 
 def laadi_kataloogid(**context):
     """
-    Küsib TME API-st iga tarnija elektroonikakataloogid ja laadib
-    staging.tooted_raw tabelisse päevase hetktõmmisena.
+    Küsib TME API-st iga MPN-i kohta variandid + hinnad ja laoseisu ning
+    laadib staging.tooted_raw tabelisse päevase hetktõmmisena.
 
     Loogika:
-    1. Hangi OAuth2 access token.
-    2. Otsi iga kategooria tootesümbolid ja põhiinfo (/products/search).
-    3. Laadi hinnad ja laoseis (/products/data, max 50 sümbolit korraga).
-    4. Sisesta staging.tooted_raw — ON CONFLICT DO NOTHING välistab duplikaadid.
-    5. Uuenda pipeline_runs olek 'success' või 'failed'.
+    1. Loe MPN-id ja kategooriad marts.tooted seedist.
+    2. Hangi OAuth2 access token.
+    3. Iga MPN-i kohta: otsi variandid (/products/search), filtreeri MPN-substring järgi.
+    4. Laadi hinnad ja laoseis (/products/data) — vali väikseim hinnatasand.
+    5. Sisesta staging.tooted_raw — ON CONFLICT DO NOTHING välistab duplikaadid.
+    6. Uuenda pipeline_runs olek 'success' või 'failed'.
     """
     hook = PostgresHook(postgres_conn_id="analytics_db")
     run_id = str(uuid.uuid4())
@@ -165,15 +196,31 @@ def laadi_kataloogid(**context):
     )
 
     try:
+        mpn_kategooriad = _loe_mpn_seed(hook)
+        if not mpn_kategooriad:
+            raise RuntimeError("marts.tooted on tühi — käivita 'dbt seed' enne")
+
+        token = _hangi_token()
+        token_count = 0
         kokku_kirjeid = 0
 
-        # Kogu kõik read enne andmebaasi kirjutamist — üks batch INSERT tarnija kohta
-        for tarnija_kood, otsingutermin in TARNIJAD:
-            # Token hangitakse iga tarnija ees (kehtib 5 min, 6 tarnijat võib ületada piiri)
-            token = _hangi_token()
+        # Kogu kõik read enne andmebaasi kirjutamist — üks batch INSERT MPN-i kohta
+        for mpn, kategooria in mpn_kategooriad:
+            # Token uuendatakse iga 40 päringu järel (kehtib 5 min, 600 MPN-i ületab piiri)
+            if token_count >= TOKEN_PARINGUTE_LIMIIT:
+                token = _hangi_token()
+                token_count = 0
 
-            # Samm 1: otsi tootesümbolid ja põhiinfo
-            symbol_info = _otsimise_symbolid(token, otsingutermin)
+            # Samm 1: otsi MPN-iga variandid + põhiinfo
+            symbol_info = _otsimise_symbolid(token, mpn)
+            token_count += 1
+
+            # Filtreeri ainult täpse MPN-iga matchivad variandid
+            mu = mpn.upper()
+            symbol_info = {
+                s: i for s, i in symbol_info.items()
+                if s.upper() == mu
+            }
             symbolid = list(symbol_info.keys())
 
             if not symbolid:
@@ -181,8 +228,9 @@ def laadi_kataloogid(**context):
 
             # Samm 2: laadi hinnad ja laoseis
             hinnad_laoseis = _hangi_hinnad_laoseis(token, symbolid)
+            token_count += max(1, (len(symbolid) + TME_PAKETI_SUURUS - 1) // TME_PAKETI_SUURUS)
 
-            # Samm 3: koosta batch parameetrid
+            # Samm 3: koosta batch parameetrid (üks rida iga variandi kohta)
             batch = []
             for sym in symbolid:
                 info = symbol_info[sym]
@@ -191,26 +239,28 @@ def laadi_kataloogid(**context):
                 if hind is None:
                     continue
                 batch.append((
-                    run_id, tarnija_kood, sym,
+                    run_id, "TME", sym, mpn,
                     info["nimi"], info["tootja"],
-                    hind, hl.get("valuuta", TME_VALUUTA),
-                    hl.get("laoseis"), otsingutermin,
+                    hind, hl.get("valuuta", TME_VALUUTA), 1.0,  # TME on alati EUR
+                    hl.get("min_kogus"), hl.get("laoseis"),
+                    kategooria,
                     now, today,
                 ))
 
             if not batch:
                 continue
 
-            # Samm 4: üks INSERT kõigi tarnija toodete jaoks (vähendab ühenduse koormust)
+            # Samm 4: üks INSERT MPN-i kõigi variantide jaoks
             conn = hook.get_conn()
             try:
                 with conn.cursor() as cur:
                     cur.executemany(
                         """
                         INSERT INTO staging.tooted_raw
-                            (run_id, tarnija_kood, sumbol, nimi, tootja, hind,
-                             valuuta, laoseis, kategooria, laetud_kell, laetud_kuupaev)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            (run_id, tarnija_kood, sumbol, mpn, nimi, tootja, hind,
+                             valuuta, valuuta_eur_kurss, min_kogus, laoseis, kategooria,
+                             laetud_kell, laetud_kuupaev)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         ON CONFLICT (tarnija_kood, sumbol, laetud_kuupaev) DO NOTHING
                         """,
                         batch,
@@ -243,13 +293,21 @@ def laadi_kataloogid(**context):
 
 
 with DAG(
-    dag_id="tarnijakataloog_pipeline",
-    description="Laeb elektroonikakataloogid TME API-st ja käivitab dbt transformatsioonid",
+    dag_id="tme_tarnijakataloog_pipeline",
+    description="Laeb elektroonikakataloogid TME API-st MPN-i kaupa ja käivitab dbt transformatsioonid",
     schedule="@daily",
     start_date=datetime(2025, 1, 1),
     catchup=False,
     tags=["tarnijakataloogid", "projektitoo"],
 ) as dag:
+
+    dbt_seed = BashOperator(
+        task_id="dbt_seed",
+        bash_command=(
+            "cd /opt/airflow/dbt_project && "
+            "dbt seed --full-refresh --profiles-dir ."
+        ),
+    )
 
     lae_andmed = PythonOperator(
         task_id="laadi_kataloogid",
@@ -260,7 +318,6 @@ with DAG(
         task_id="dbt_run",
         bash_command=(
             "cd /opt/airflow/dbt_project && "
-            "dbt seed --profiles-dir . && "
             "dbt run --profiles-dir ."
         ),
     )
@@ -273,4 +330,4 @@ with DAG(
         ),
     )
 
-    lae_andmed >> dbt_run >> dbt_test
+    dbt_seed >> lae_andmed >> dbt_run >> dbt_test
