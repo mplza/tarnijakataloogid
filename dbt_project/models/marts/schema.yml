@@ -1,0 +1,146 @@
+version: 2
+
+models:
+  - name: mart_tarnija_kokkuvote
+    description: "Marts mudel: koondstatistika tarnija kaupa (viimane päev) — Superset kasutab"
+    columns:
+      - name: tarnija_kood
+        description: "Tarnija kood"
+        tests:
+          - not_null
+          - unique
+      - name: tarnija_nimi
+        description: "Tarnija nimi"
+        tests:
+          - not_null
+      - name: riik
+        description: "Tarnija riik"
+      - name: laetud_kuupaev
+        description: "Andmete kuupäev"
+        tests:
+          - not_null
+      - name: toodete_arv
+        description: "Saadavalolevate toodete arv"
+        tests:
+          - not_null
+      - name: kesk_hind
+        description: "Keskmine hind"
+      - name: min_hind
+        description: "Minimaalne hind"
+      - name: max_hind
+        description: "Maksimaalne hind"
+      - name: laost_otsas_arv
+        description: "Laost otsa olevate toodete arv"
+      - name: kategooriate_arv
+        description: "Kategooriate arv"
+        tests:
+          - not_null
+      - name: hinnatousud
+        description: "Hinnatõusude arv"
+      - name: hinnalangetused
+        description: "Hinnalangetuste arv"
+      - name: laopuudus_pct
+        description: "Laopuuduse protsent"
+      - name: kataloogi_maht_rank
+        description: "Kataloogimahu järgi järjestus"
+
+  - name: mart_kategooria_hinnajaotus
+    description: "Marts mudel: hinnajaotus kategooriate kaupa — Superset kasutab"
+    columns:
+      - name: kategooria
+        description: "Toote kategooria"
+        tests:
+          - not_null
+      - name: laetud_kuupaev
+        description: "Andmete kuupäev"
+        tests:
+          - not_null
+      - name: toodete_arv
+        description: "Toodete arv kategoorias"
+        tests:
+          - not_null
+
+  - name: mart_KPI
+    description: "Marts mudel: KPI ülevaade — unikaalsete toodete, tootjate, tarnijate ja kategooriate arv päeva seisuga"
+    columns:
+      - name: laetud_kuupaev
+        description: "Hetktõmmise kuupäev"
+        tests:
+          - not_null
+          - unique
+      - name: unikaalsed_tooted
+        description: "Unikaalsete toodete (MPN) arv"
+        tests:
+          - not_null
+      - name: unikaalsed_tootjad
+        description: "Unikaalsete tootjate arv"
+        tests:
+          - not_null
+      - name: unikaalsed_kategooriad
+        description: "Unikaalsete kategooriate arv"
+        tests:
+          - not_null
+      - name: unikaalsed_tarnijad
+        description: "Unikaalsete tarnijate arv"
+        tests:
+          - not_null
+
+  - name: mart_TOP10_kallimat_toodet
+    description: "Marts mudel: TOP 10 saadavalolevat kallimat toodet hinnavõrdluse järgi"
+    columns:
+      - name: mpn
+        description: "Manufacturer Part Number"
+        tests:
+          - not_null
+      - name: tootja
+        description: "Tootja nimi (uppercase normaliseeritud)"
+        tests:
+          - not_null
+      - name: kategooria
+        description: "Toote kategooria"
+        tests:
+          - not_null
+      - name: laetud_kuupaev
+        description: "Andmete kuupäev"
+        tests:
+          - not_null
+      - name: hind_eur
+        description: "Hind eurodes"
+        tests:
+          - not_null
+      - name: hind_rank
+        description: "Hinna järjestus (1 = parim hind selle tootele)"
+        tests:
+          - not_null
+
+  - name: mart_hinnavordlus
+    description: "Marts mudel: hinnavõrdlus TME vs FARNELL — mpn × tootja × kategooria × päev tasandil"
+    columns:
+      - name: mpn
+        description: "Manufacturer Part Number"
+        tests:
+          - not_null
+      - name: tootja
+        description: "Tootja nimi (uppercase normaliseeritud)"
+        tests:
+          - not_null
+      - name: kategooria
+        description: "Toote kategooria"
+        tests:
+          - not_null
+      - name: laetud_kuupaev
+        description: "Andmete kuupäev"
+        tests:
+          - not_null
+      - name: tme_parim_hind_eur
+        description: "TME parim hind eurodes"
+      - name: tme_min_kogus
+        description: "TME minimaalne tellitav kogus"
+      - name: tme_laos
+        description: "Kas toode on TME laos saadaval"
+      - name: farnell_parim_hind_eur
+        description: "Farnelli parim hind eurodes"
+      - name: farnell_min_kogus
+        description: "Farnelli minimaalne tellitav kogus"
+      - name: farnell_laos
+        description: "Kas toode on Farnellis laos saadaval"
