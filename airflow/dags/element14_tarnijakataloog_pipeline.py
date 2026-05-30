@@ -20,7 +20,7 @@ ON CONFLICT DO NOTHING tagab, et sama päeva andmeid ei dubleerita."""
 import os
 import time
 import uuid
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 import requests
 from airflow import DAG
@@ -278,6 +278,7 @@ with DAG(
     lae_andmed = PythonOperator(
         task_id="laadi_kataloogid",
         python_callable=laadi_kataloogid,
+        execution_timeout=timedelta(minutes=10),
     )
 
     dbt_run = BashOperator(
