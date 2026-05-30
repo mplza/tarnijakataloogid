@@ -20,6 +20,7 @@ ON CONFLICT DO NOTHING tagab, et sama päeva andmeid ei dubleerita."""
 import os
 import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime, timedelta, timezone
 
 import requests
@@ -182,6 +183,7 @@ def laadi_kataloogid(**context):
     laadib staging.tooted_raw tabelisse päevase hetktõmmisena.
 
     Ühendus suletakse enne pikka API-päringut, et vältida Neon jõudeoleku timeout-i.
+    Paralleelsed API päringud kiirenevad töötlemist.
     """
     hook = PostgresHook(postgres_conn_id="analytics_db")
     run_id = str(uuid.uuid4())
@@ -213,24 +215,32 @@ def laadi_kataloogid(**context):
     if not mpn_kategooriad:
         raise RuntimeError("marts.tooted on tühi — käivita 'dbt seed' enne")
 
-    # Samm 2: API-päringud ilma andmebaasi ühenduseta
+    # Samm 2: API-päringud paralleelselt ilma andmebaasi ühenduseta
     gbp_eur_kurss = _hangi_gbp_eur_kurss()
     koik_read = []
 
-    for mpn, kategooria in mpn_kategooriad:
-        tooted = _hangi_tooted(mpn)
-        if not tooted:
-            continue
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        futures = {executor.submit(_hangi_tooted, mpn): (mpn, kategooria)
+                   for mpn, kategooria in mpn_kategooriad}
 
-        for toode in tooted:
-            koik_read.append((
-                run_id, "FARNELL", toode["sku"], mpn,
-                toode["nimi"], toode["tootja"],
-                toode["hind"], toode["valuuta"], gbp_eur_kurss,
-                toode["min_kogus"], toode["laoseis"],
-                kategooria,
-                now, today,
-            ))
+        for future in as_completed(futures):
+            mpn, kategooria = futures[future]
+            try:
+                tooted = future.result()
+                if not tooted:
+                    continue
+
+                for toode in tooted:
+                    koik_read.append((
+                        run_id, "FARNELL", toode["sku"], mpn,
+                        toode["nimi"], toode["tootja"],
+                        toode["hind"], toode["valuuta"], gbp_eur_kurss,
+                        toode["min_kogus"], toode["laoseis"],
+                        kategooria,
+                        now, today,
+                    ))
+            except Exception as e:
+                print(f"API päringu viga MPN-i {mpn} jaoks: {e}")
 
     # Samm 3: Avatud ühendus — sisesta kõik read ja uuenda status
     try:

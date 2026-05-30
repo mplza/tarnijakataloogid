@@ -25,6 +25,7 @@ import base64
 import os
 import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime, timedelta, timezone
 
 import requests
@@ -203,6 +204,43 @@ def _loe_mpn_seed(hook: PostgresHook) -> list:
     )
 
 
+def _process_mpn_tme(mpn: str, kategooria: str, run_id: str, now, today) -> list:
+    """Töötle üks MPN: hangi sümbolid ja hinnad. Käivitatakse paralleelselt."""
+    token = _hangi_token()
+    read = []
+
+    symbol_info = _otsimise_symbolid(token, mpn)
+
+    mu = mpn.upper()
+    symbol_info = {
+        s: i for s, i in symbol_info.items()
+        if s.upper() == mu
+    }
+    symbolid = list(symbol_info.keys())
+
+    if not symbolid:
+        return read
+
+    hinnad_laoseis = _hangi_hinnad_laoseis(token, symbolid)
+
+    for sym in symbolid:
+        info = symbol_info[sym]
+        hl = hinnad_laoseis.get(sym, {})
+        hind = hl.get("hind")
+        if hind is None:
+            continue
+        read.append((
+            run_id, "TME", sym, mpn,
+            info["nimi"], info["tootja"],
+            hind, hl.get("valuuta", TME_VALUUTA), 1.0,
+            hl.get("min_kogus"), hl.get("laoseis"),
+            kategooria,
+            now, today,
+        ))
+
+    return read
+
+
 def laadi_kataloogid(**context):
     """
     Küsib TME API-st iga MPN-i kohta variandid + hinnad ja laoseisu ning
@@ -243,46 +281,20 @@ def laadi_kataloogid(**context):
     if not mpn_kategooriad:
         raise RuntimeError("marts.tooted on tühi — käivita 'dbt seed' enne")
 
-    # Samm 2: API-päringud ilma andmebaasi ühenduseta
-    token = _hangi_token()
-    token_count = 0
+    # Samm 2: API-päringud paralleelselt ilma andmebaasi ühenduseta
     koik_read = []
 
-    for mpn, kategooria in mpn_kategooriad:
-        if token_count >= TOKEN_PARINGUTE_LIMIIT:
-            token = _hangi_token()
-            token_count = 0
+    with ThreadPoolExecutor(max_workers=6) as executor:
+        futures = {executor.submit(_process_mpn_tme, mpn, kategooria, run_id, now, today): (mpn, kategooria)
+                   for mpn, kategooria in mpn_kategooriad}
 
-        symbol_info = _otsimise_symbolid(token, mpn)
-        token_count += 1
-
-        mu = mpn.upper()
-        symbol_info = {
-            s: i for s, i in symbol_info.items()
-            if s.upper() == mu
-        }
-        symbolid = list(symbol_info.keys())
-
-        if not symbolid:
-            continue
-
-        hinnad_laoseis = _hangi_hinnad_laoseis(token, symbolid)
-        token_count += max(1, (len(symbolid) + TME_PAKETI_SUURUS - 1) // TME_PAKETI_SUURUS)
-
-        for sym in symbolid:
-            info = symbol_info[sym]
-            hl = hinnad_laoseis.get(sym, {})
-            hind = hl.get("hind")
-            if hind is None:
-                continue
-            koik_read.append((
-                run_id, "TME", sym, mpn,
-                info["nimi"], info["tootja"],
-                hind, hl.get("valuuta", TME_VALUUTA), 1.0,
-                hl.get("min_kogus"), hl.get("laoseis"),
-                kategooria,
-                now, today,
-            ))
+        for future in as_completed(futures):
+            mpn, kategooria = futures[future]
+            try:
+                read = future.result()
+                koik_read.extend(read)
+            except Exception as e:
+                print(f"API päringu viga MPN-i {mpn} jaoks: {e}")
 
     # Samm 3: Avatud ühendus — sisesta kõik read ja uuenda status
     try:
