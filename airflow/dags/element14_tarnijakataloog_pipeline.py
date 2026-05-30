@@ -278,7 +278,7 @@ with DAG(
     lae_andmed = PythonOperator(
         task_id="laadi_kataloogid",
         python_callable=laadi_kataloogid,
-        execution_timeout=timedelta(minutes=10),
+        execution_timeout=timedelta(minutes=20),
     )
 
     dbt_run = BashOperator(
