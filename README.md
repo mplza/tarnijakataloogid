@@ -122,7 +122,7 @@ Mõlemad DAG-id (TME ja Element14) käivituvad igapäevaselt (`@daily`) ja koosn
    - Referentsiaalne integraal (FK validatsioon)
    - Unikaalsus võtmeväljade jaoks
 
-## Andmemudel (3-kiht Kimball arhitektuur)
+## Andmemudel (3-kihiline Kimball arhitektuur)
 
 ```
 Staging kiht:
