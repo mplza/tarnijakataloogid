@@ -65,12 +65,12 @@ flowchart LR
 
 ## Tööjaotus
 
-| Roll | Vastutus |
-|---|---|
-| Andmeallika omanik | Kontrollib API vastust ja kirjutab sissevõtu loogika. |
-| Transformatsioonide omanik | Kirjutab `mart` kihi tabelid ja mõõdikute arvutuse. |
-| Kvaliteedi omanik | Kirjutab testid ja vaatab läbi ebaõnnestunud kontrollid. |
-| Näidikulaua omanik | Ehitab Superseti vaate ja seob selle äriküsimusega. |
+| Roll | Vastutus | Nimi |
+|---|---|---|
+| Andmeallika omanik | Kontrollib API vastust ja kirjutab sissevõtu loogika. | Bernard |
+| Transformatsioonide omanik | Kirjutab `mart` kihi tabelid ja mõõdikute arvutuse. | Triin |
+| Kvaliteedi omanik | Kirjutab testid ja vaatab läbi ebaõnnestunud kontrollid. | Merilin |
+| Näidikulaua omanik | Ehitab Superseti vaate ja seob selle äriküsimusega. | Martin |
 
 ## Riskid
 

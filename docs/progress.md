@@ -4,11 +4,11 @@
 
 - Docker Compose käivitab kõik teenused: analytics-db, Airflow, Superset.
 - Open-Meteo API-st saadakse 10 Eesti asukoha 7-päevane tunnipõhine prognoos.
-- Airflow DAG laadib andmed `staging.ilmaandmed_raw` tabelisse.
-- dbt seed laadib `asukohad.csv` → `marts.asukohad` tabelisse.
-- dbt staging mudel (`stg_ilmaandmed`) puhastab toorandmed.
-- dbt intermediate mudel (`int_ilmaandmed_skoor`) arvutab tunnipõhise sobivasskoor.
-- dbt marts mudelid (`mart_paeva_kokkuvote`, `mart_parimad_ajavahemikud`) on töös.
+- Airflow DAG laadib andmed `staging.stg_tooted` tabelisse.
+- dbt seed laadib tarnijate (`tarnijad`) ja toodete (`tooted`) mappingu andmed.
+- dbt staging mudel (`stg_tooted`) puhastab toorandmed.
+- dbt intermediate mudel (`int_tootepakkumised_paeviti`) loob saadavalolevad unikaalsed tooted tarnija ja kategooria jaotuses, mis on sisendiks dbt marts mudelitele.
+- dbt marts mudelid (`mart_KPI`, `mart_TOP10_kallimat_toodet`) on töös.
 - dbt testid läbivad: not_null, unique, accepted_values testid kõigi mudelite kohta.
 - Superset on käivitunud aadressil http://localhost:8088 (admin/admin).
 
