@@ -28,6 +28,41 @@ from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
+
+def _db_insert_with_retry(hook, batch, max_retries=3):
+    """Sisesta andmed andmebaasi retry-loogikaga."""
+    for attempt in range(max_retries):
+        conn = None
+        try:
+            conn = hook.get_conn()
+            with conn.cursor() as cur:
+                cur.executemany(
+                    """
+                    INSERT INTO staging.tooted_raw
+                        (run_id, tarnija_kood, sumbol, mpn, nimi, tootja, hind,
+                         valuuta, valuuta_eur_kurss, min_kogus, laoseis, kategooria,
+                         laetud_kell, laetud_kuupaev)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (tarnija_kood, sumbol, laetud_kuupaev) DO NOTHING
+                    """,
+                    batch,
+                )
+            conn.commit()
+            return len(batch)
+        except Exception as e:
+            if conn:
+                try:
+                    conn.rollback()
+                except:
+                    pass
+                conn.close()
+            if attempt < max_retries - 1:
+                wait_time = 2 ** attempt
+                print(f"Andmebaasi sisestamine ebaõnnestus (katse {attempt + 1}/{max_retries}). Proovi uuesti {wait_time}s pärast: {e}")
+                time.sleep(wait_time)
+            else:
+                raise
+
 E14_BASE_URL = "https://api.element14.com/catalog/products"
 E14_VERSION = "1.2"
 E14_FORMAAT = "json"
@@ -188,26 +223,8 @@ def laadi_kataloogid(**context):
             if not batch:
                 continue
 
-            # Üks INSERT MPN-i kõigi variantide jaoks
-            conn = hook.get_conn()
-            try:
-                with conn.cursor() as cur:
-                    cur.executemany(
-                        """
-                        INSERT INTO staging.tooted_raw
-                            (run_id, tarnija_kood, sumbol, mpn, nimi, tootja, hind,
-                             valuuta, valuuta_eur_kurss, min_kogus, laoseis, kategooria,
-                             laetud_kell, laetud_kuupaev)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                        ON CONFLICT (tarnija_kood, sumbol, laetud_kuupaev) DO NOTHING
-                        """,
-                        batch,
-                    )
-                conn.commit()
-            finally:
-                conn.close()
-
-            kokku_kirjeid += len(batch)
+            # Sisesta batch retry-loogikaga
+            kokku_kirjeid += _db_insert_with_retry(hook, batch)
 
 
         hook.run(

@@ -13,20 +13,21 @@ WITH base AS (
         s.tootja,
         s.laetud_kuupaev,
         s.kategooria,
+        s.on_laost_otsas,
         t.tarnija_nimi
     FROM {{ ref('stg_tooted') }} s
     LEFT JOIN {{ ref('tarnijad') }} t
         ON s.tarnija_kood = t.tarnija_kood
-        WHERE on_laost_otsas = false
 )
 
 SELECT DISTINCT
-laetud_kuupaev,
-tarnija_kood, 
-tarnija_nimi,
-tootja, 
-nimi as toote_nimi, 
-mpn,
-kategooria  
-    FROM base
+    laetud_kuupaev,
+    tarnija_kood,
+    tarnija_nimi,
+    tootja,
+    nimi as toote_nimi,
+    mpn,
+    kategooria
+FROM base
+WHERE on_laost_otsas = false
 
