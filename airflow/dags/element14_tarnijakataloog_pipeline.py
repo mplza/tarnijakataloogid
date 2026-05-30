@@ -188,9 +188,10 @@ def laadi_kataloogid(**context):
             if not batch:
                 continue
 
-            # Üks INSERT MPN-i kõigi variantide jaoks
-            conn = hook.get_conn()
+            # Üks INSERT MPN-i kõigi variantide jaoks — uus ühendus iga batch-i jaoks
+            conn = None
             try:
+                conn = hook.get_conn()
                 with conn.cursor() as cur:
                     cur.executemany(
                         """
@@ -205,7 +206,8 @@ def laadi_kataloogid(**context):
                     )
                 conn.commit()
             finally:
-                conn.close()
+                if conn:
+                    conn.close()
 
             kokku_kirjeid += len(batch)
 
