@@ -181,7 +181,7 @@ docker compose down -v     # peatab ja kustutab kõik andmed (täielik lähtesta
 
 | Nimi | Roll |
 |------|------|
-| Merilin Paas-Loeza | [Roll] |
-| Triin Bulõgina | [Roll] |
-| Bernard Puström | [Roll] |
-| Martin Aasna | [Roll] |
+| Merilin Paas-Loeza | [Kvaliteedi omanik] |
+| Triin Bulõgina | [Transformatsioonide omanik] |
+| Bernard Puström | [Andmeallika omanik] |
+| Martin Aasna | [Näidikulaua omanik] |
