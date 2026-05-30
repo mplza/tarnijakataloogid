@@ -58,6 +58,7 @@ flowchart LR
     G --> H["Marts kiht<br/>KPI-d & hinnavõrdlus"]
 
     F --> I["dbt testid<br/>Andmekvaliteedi kontroll"]
+    I --> G
 
     H --> J["Apache Superset<br/>Näidikulaud"]
 ```
