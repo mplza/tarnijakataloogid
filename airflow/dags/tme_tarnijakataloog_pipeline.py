@@ -25,7 +25,8 @@ import base64
 import os
 import time
 import uuid
-from datetime import date, datetime, timezone
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import date, datetime, timedelta, timezone
 
 import requests
 from airflow import DAG
@@ -203,90 +204,103 @@ def _loe_mpn_seed(hook: PostgresHook) -> list:
     )
 
 
+def _process_mpn_tme(mpn: str, kategooria: str, run_id: str, now, today) -> list:
+    """Töötle üks MPN: hangi sümbolid ja hinnad. Käivitatakse paralleelselt."""
+    token = _hangi_token()
+    read = []
+
+    symbol_info = _otsimise_symbolid(token, mpn)
+
+    mu = mpn.upper()
+    symbol_info = {
+        s: i for s, i in symbol_info.items()
+        if s.upper() == mu
+    }
+    symbolid = list(symbol_info.keys())
+
+    if not symbolid:
+        return read
+
+    hinnad_laoseis = _hangi_hinnad_laoseis(token, symbolid)
+
+    for sym in symbolid:
+        info = symbol_info[sym]
+        hl = hinnad_laoseis.get(sym, {})
+        hind = hl.get("hind")
+        if hind is None:
+            continue
+        read.append((
+            run_id, "TME", sym, mpn,
+            info["nimi"], info["tootja"],
+            hind, hl.get("valuuta", TME_VALUUTA), 1.0,
+            hl.get("min_kogus"), hl.get("laoseis"),
+            kategooria,
+            now, today,
+        ))
+
+    return read
+
+
 def laadi_kataloogid(**context):
     """
     Küsib TME API-st iga MPN-i kohta variandid + hinnad ja laoseisu ning
     laadib staging.tooted_raw tabelisse päevase hetktõmmisena.
 
     Loogika:
-    1. Loe MPN-id ja kategooriad marts.tooted seedist.
-    2. Hangi OAuth2 access token.
-    3. Iga MPN-i kohta: otsi variandid (/products/search), filtreeri MPN-substring järgi.
-    4. Laadi hinnad ja laoseis (/products/data) — vali väikseim hinnatasand.
-    5. Sisesta staging.tooted_raw — ON CONFLICT DO NOTHING välistab duplikaadid.
-    6. Uuenda pipeline_runs olek 'success' või 'failed'.
+    1. Avatud ühendus: loe MPN-id seedist, salvesta käivitus.
+    2. Sulge ühendus, hangi kõik andmed API-st (ilma ühenduseta, et vältida timeout-i).
+    3. Avatud ühendus: sisesta kõik andmed, uuenda status.
     """
     hook = PostgresHook(postgres_conn_id="analytics_db")
     run_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc)
     today = date.today()
 
-    hook.run(
-        """
-        INSERT INTO staging.pipeline_runs
-            (run_id, fetched_at, source_name, laetud_kuupaev, status)
-        VALUES (%s, %s, 'tme', %s, 'running')
-        """,
-        parameters=(run_id, now, today),
-    )
-
+    # Samm 1: Avatud ühendus — salvesta käivitus, loe seed
     try:
+        hook.run(
+            """
+            INSERT INTO staging.pipeline_runs
+                (run_id, fetched_at, source_name, laetud_kuupaev, status)
+            VALUES (%s, %s, 'tme', %s, 'running')
+            """,
+            parameters=(run_id, now, today),
+        )
         mpn_kategooriad = _loe_mpn_seed(hook)
-        if not mpn_kategooriad:
-            raise RuntimeError("marts.tooted on tühi — käivita 'dbt seed' enne")
+    except Exception as exc:
+        hook.run(
+            """
+            UPDATE staging.pipeline_runs
+            SET status = 'failed', message = %s
+            WHERE run_id = %s
+            """,
+            parameters=(str(exc)[:500], run_id),
+        )
+        raise
 
-        token = _hangi_token()
-        token_count = 0
+    if not mpn_kategooriad:
+        raise RuntimeError("marts.tooted on tühi — käivita 'dbt seed' enne")
+
+    # Samm 2: API-päringud paralleelselt ilma andmebaasi ühenduseta
+    koik_read = []
+
+    with ThreadPoolExecutor(max_workers=6) as executor:
+        futures = {executor.submit(_process_mpn_tme, mpn, kategooria, run_id, now, today): (mpn, kategooria)
+                   for mpn, kategooria in mpn_kategooriad}
+
+        for future in as_completed(futures):
+            mpn, kategooria = futures[future]
+            try:
+                read = future.result()
+                koik_read.extend(read)
+            except Exception as e:
+                print(f"API päringu viga MPN-i {mpn} jaoks: {e}")
+
+    # Samm 3: Avatud ühendus — sisesta kõik read ja uuenda status
+    try:
         kokku_kirjeid = 0
-
-        # Kogu kõik read enne andmebaasi kirjutamist — üks batch INSERT MPN-i kohta
-        for mpn, kategooria in mpn_kategooriad:
-            # Token uuendatakse iga 40 päringu järel (kehtib 5 min, 600 MPN-i ületab piiri)
-            if token_count >= TOKEN_PARINGUTE_LIMIIT:
-                token = _hangi_token()
-                token_count = 0
-
-            # Samm 1: otsi MPN-iga variandid + põhiinfo
-            symbol_info = _otsimise_symbolid(token, mpn)
-            token_count += 1
-
-            # Filtreeri ainult täpse MPN-iga matchivad variandid
-            mu = mpn.upper()
-            symbol_info = {
-                s: i for s, i in symbol_info.items()
-                if s.upper() == mu
-            }
-            symbolid = list(symbol_info.keys())
-
-            if not symbolid:
-                continue
-
-            # Samm 2: laadi hinnad ja laoseis
-            hinnad_laoseis = _hangi_hinnad_laoseis(token, symbolid)
-            token_count += max(1, (len(symbolid) + TME_PAKETI_SUURUS - 1) // TME_PAKETI_SUURUS)
-
-            # Samm 3: koosta batch parameetrid (üks rida iga variandi kohta)
-            batch = []
-            for sym in symbolid:
-                info = symbol_info[sym]
-                hl = hinnad_laoseis.get(sym, {})
-                hind = hl.get("hind")
-                if hind is None:
-                    continue
-                batch.append((
-                    run_id, "TME", sym, mpn,
-                    info["nimi"], info["tootja"],
-                    hind, hl.get("valuuta", TME_VALUUTA), 1.0,  # TME on alati EUR
-                    hl.get("min_kogus"), hl.get("laoseis"),
-                    kategooria,
-                    now, today,
-                ))
-
-            if not batch:
-                continue
-
-            # Samm 4: sisesta batch retry-loogikaga
-            kokku_kirjeid += _db_insert_with_retry(hook, batch)
+        if koik_read:
+            kokku_kirjeid = _db_insert_with_retry(hook, koik_read)
 
         hook.run(
             """
@@ -296,7 +310,6 @@ def laadi_kataloogid(**context):
             """,
             parameters=(kokku_kirjeid, run_id),
         )
-
     except Exception as exc:
         hook.run(
             """
@@ -329,6 +342,7 @@ with DAG(
     lae_andmed = PythonOperator(
         task_id="laadi_kataloogid",
         python_callable=laadi_kataloogid,
+        execution_timeout=timedelta(minutes=20),
     )
 
     dbt_run = BashOperator(

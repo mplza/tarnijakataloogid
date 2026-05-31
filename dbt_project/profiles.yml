@@ -9,5 +9,10 @@ tarnijakataloogid_dbt:
       password: "{{ env_var('POSTGRES_PASSWORD') }}"
       dbname: "{{ env_var('POSTGRES_DB') }}"
       schema: public
-      threads: 2
+      threads: 1
       sslmode: require
+      connect_timeout: 60
+      keepalives: 1
+      keepalives_idle: 10
+      keepalives_interval: 5
+      keepalives_count: 10
