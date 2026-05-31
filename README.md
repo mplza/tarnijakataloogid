@@ -23,40 +23,22 @@ Projekt kasutab **kahte iseseisvat API-t**, millest igaühel oma DAG — see lah
 **TME** (`https://api.tme.eu`) — Transfer Multisort Elektronik elektroonikamüüja REST API v2.
 - Autentimine: OAuth 2.0 (`client_credentials`), Bearer token kehtib 5 minutit
 - Kredentsiaalid: `.env` failist (`API_PRIVATE_KEY`, `API_APP_SECRET`)
-- 6 tarnijat, EUR hinnad
-- DAG: `tarnijakataloog_pipeline`
-
-| Tarnija kood | Tarnija nimi       | Kategooria         | Riik   |
-|--------------|--------------------|--------------------|--------|
-| RESIST       | ResistorTrade OÜ   | resistors          | Eesti  |
-| CAPS         | CapacitorTech AS   | capacitors         | Läti   |
-| MCU          | MicroChip SIA      | microcontrollers   | Leedu  |
-| LED          | LightTech OÜ       | led diodes         | Soome  |
-| SENSOR       | SensorPro OÜ       | sensors            | Eesti  |
-| CONNECT      | ConnectWay AS      | connectors         | Läti   |
+- 1 tarnija (TME), EUR hinnad
+- DAG: `tme_tarnijakataloog_pipeline`
 
 ### Element14 / Farnell API v1.2 (UK)
 **Farnell UK** (`https://api.element14.com`) — Briti elektroonikamüüja REST API.
 - Autentimine: API võti URL-parameetri kaudu (`ELEMENT14_API_KEY`)
-- Pood: `uk.farnell.com`, GBP hinnad
-- 6 tarnijat (Farnell kaudu)
+- Pood: `uk.farnell.com`, GBP hinnad (konverteeritakse EUR-iks Frankfurter API kursiga)
+- 1 tarnija (FARNELL)
 - DAG: `element14_tarnijakataloog_pipeline`
-
-| Tarnija kood | Kataloogi nimi | Kategooria         |
-|--------------|----------------|--------------------|
-| E14_RESIST   | Farnell UK     | resistors          |
-| E14_CAPS     | Farnell UK     | capacitors         |
-| E14_MCU      | Farnell UK     | microcontrollers   |
-| E14_LED      | Farnell UK     | led diodes         |
-| E14_SENSOR   | Farnell UK     | sensors            |
-| E14_CONNECT  | Farnell UK     | connectors         |
 
 ## Projekti struktuur
 
 ```
 projektitoo-tarnijakataloogid/
 ├── airflow/dags/
-│   ├── tarnijakataloog_pipeline.py              — TME API DAG
+│   ├── tme_tarnijakataloog_pipeline.py           — TME API DAG
 │   └── element14_tarnijakataloog_pipeline.py    — Farnell/Element14 API DAG
 ├── dbt_project/
 │   ├── seeds/
@@ -69,6 +51,7 @@ projektitoo-tarnijakataloogid/
 │       ├── intermediate/
 │       │   ├── int_toode_hinnamuutus.sql        — hinnamuutused LAG()-ga
 │       │   ├── int_tootepakkumised_paeviti.sql  — päevased unikaalsed tooted
+│       │   ├── int_toote_hinnad_paeviti.sql     — päevased hinnad toote kaupa
 │       │   └── schema.yml                       — 17 andmekvaliteedi testi
 │       └── marts/
 │           ├── mart_tarnija_kokkuvote.sql       — tarnijate koondstatistika
@@ -76,6 +59,8 @@ projektitoo-tarnijakataloogid/
 │           ├── mart_KPI.sql                     — KPI mõõdikud
 │           ├── mart_TOP10_kallimat_toodet.sql   — TOP 10 kalleim toode
 │           ├── mart_hinnavordlus.sql            — hinnavõrdlus TME vs Farnell
+│           ├── mart_hinnamuutus_paeviti.sql     — päevased hinnamuutused
+│           ├── mart_toote_hinnavordlus_paeviti.sql — toote hinnavõrdlus päeviti
 │           └── schema.yml                       — 12 andmekvaliteedi testi
 ├── init/01_create_schemas.sql                   — andmebaasi skeemid ja tabelid
 ├── superset/superset_config.py
@@ -132,6 +117,7 @@ Intermediate kiht (puhastus + äriloogika):
   staging.stg_tooted          ← dbt view: puhastus, on_laost_otsas flag
   int_toode_hinnamuutus       ← dbt view: hinnamuutused LAG()-ga + tarnija JOIN
   int_tootepakkumised_paeviti ← dbt view: päevased unikaalsed tooted
+  int_toote_hinnad_paeviti    ← dbt view: päevased hinnad toote kaupa
 
 Marts kiht (analüütika):
   mart_tarnija_kokkuvote      ← dbt table: tarnijate võrdlus (Superset)
@@ -139,6 +125,8 @@ Marts kiht (analüütika):
   mart_KPI                    ← dbt table: unikaalsete toodete/tootjate arv
   mart_TOP10_kallimat_toodet  ← dbt table: TOP 10 kalleim toode
   mart_hinnavordlus           ← dbt table: hinnavõrdlus TME vs Farnell (Superset)
+  mart_hinnamuutus_paeviti    ← dbt table: päevased hinnamuutused
+  mart_toote_hinnavordlus_paeviti ← dbt table: toote hinnavõrdlus päeviti
 ```
 
 ## Andmekvaliteet
