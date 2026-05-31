@@ -2,7 +2,7 @@
 --
 -- Sammud:
 --   1. base   — ühendab staging andmed tarnijainfo seediga, leiab eelmise päeva hinna
---   2. muutus — arvutab protsentuaalse päevase hinnamuutuse ja suuna
+--   2. muutus — arvutab protsentuaalse päevase hinnamuutuse 
 --
 -- LAG() aken töötab tarnija + sümbol tasandil: võrdleb tänast hinda
 -- eelmise laaditud päeva hinnaga. Esimesel päeval on eelmine hind NULL.
@@ -25,10 +25,10 @@ WITH base AS (
         s.kategooria,
         s.aasta,
         s.kuu,
-        LAG(s.hind) OVER (
+        LAG(s.hind_eur) OVER (
             PARTITION BY s.tarnija_kood, s.sumbol
             ORDER BY s.laetud_kuupaev
-        ) AS eelmine_hind,
+        ) AS eelmine_hind_eur,
         t.tarnija_nimi,
         t.riik
     FROM {{ ref('stg_tooted') }} s
@@ -40,16 +40,10 @@ muutus AS (
     SELECT
         *,
         CASE
-            WHEN eelmine_hind IS NOT NULL AND eelmine_hind <> 0
-            THEN ROUND((hind - eelmine_hind) / eelmine_hind * 100, 2)
+            WHEN eelmine_hind_eur IS NOT NULL AND eelmine_hind_eur <> 0
+            THEN ROUND((hind_eur - eelmine_hind_eur) / eelmine_hind_eur * 100, 2)
             ELSE NULL
-        END AS hinna_muutus_pct,
-        CASE
-            WHEN eelmine_hind IS NULL     THEN 'Esimene kirje'
-            WHEN hind > eelmine_hind      THEN 'Hinnatõus'
-            WHEN hind < eelmine_hind      THEN 'Hinnalangetamine'
-            ELSE                               'Muutuseta'
-        END AS hinna_suund
+        END AS hinna_muutus_pct
     FROM base
 )
 
