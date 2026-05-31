@@ -43,7 +43,13 @@ muutus AS (
             WHEN eelmine_hind_eur IS NOT NULL AND eelmine_hind_eur <> 0
             THEN ROUND((hind_eur - eelmine_hind_eur) / eelmine_hind_eur * 100, 2)
             ELSE NULL
-        END AS hinna_muutus_pct
+        END AS hinna_muutus_pct,
+        CASE
+            WHEN eelmine_hind_eur IS NULL    THEN 'Esimene kirje'
+            WHEN hind_eur > eelmine_hind_eur THEN 'Hinnatõus'
+            WHEN hind_eur < eelmine_hind_eur THEN 'Hinnalangetamine'
+            ELSE                                  'Muutuseta'
+        END AS hinna_suund
     FROM base
 )
 

@@ -54,7 +54,7 @@ final AS (
 
     SELECT
         a.laetud_kuupaev,
-        MAX(CASE WHEN r.rn_soodsaim = 1 THEN r.mpn END) AS mpn,
+        a.mpn,
         MAX(CASE WHEN r.rn_soodsaim = 1 THEN r.nimi END) AS nimi,
         MAX(CASE WHEN r.rn_soodsaim = 1 THEN r.kategooria END) AS kategooria,
 
@@ -83,6 +83,7 @@ final AS (
 
     GROUP BY
         a.laetud_kuupaev,
+        a.mpn,
         a.min_hind_eur,
         a.max_hind_eur,
         a.pakkujate_arv
