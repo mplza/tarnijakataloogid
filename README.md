@@ -4,6 +4,53 @@ Andmetorude pipeline, mis laadib e-poe tarnijakataloogide andmed **kahest eri al
 
 Tehniline ülevaade: https://mplza.github.io/tarnijakataloogid/tehniline-ulevaade.html
 
+## Äriküsimus
+
+Anda ülevaade elektroonikakomponentide tootekataloogis olevatest toodetest, tarnijatest ja tootjatest ning tuua välja samade toodete hinnaerinevused tarnijate ja tootjate lõikes.
+
+Millised elektroonikakomponendid on erinevate tarnijate ja tootjate lõikes kõige optimaalsema hinnaga?
+
+**Mõõdikud:**
+
+1. Unikaalsete tootjate arv
+2. Unikaalsete tarnijate arv
+3. Unikaalsete toodete arv
+4. Elektroonikakomponentide kategooriate arv
+5. TOP 10 kallimat toodet
+6. Toodete hinnavõrdluse tabel tootjate, tarnijate lõikes (min, max, soodsaim/kalleim pakkuja)
+
+## Arhitektuur
+
+```mermaid
+flowchart LR
+    TME["TME API<br/>api.tme.eu"] --> B["Apache Airflow<br/>Orkestreerimine"]
+    E14["Farnell API<br/>api.element14.com"] --> B
+    B --> C["Andmete laadimine<br/>API-st andmebaasi"]
+    C --> D[("PostgreSQL / Neon<br/>Andmebaas")]
+
+    D --> E["Staging kiht<br/>Toorandmed"]
+    SEED["CSV seed-failid<br/>tooted.csv & tarnijad.csv"] --> F
+    E --> F["dbt Core<br/>Transformatsioonid"]
+    F --> G["Intermediate kiht<br/>Hinnamuutused & pakkumised"]
+    G --> H["Marts kiht<br/>KPI-d & hinnavõrdlus"]
+
+    F --> I["dbt testid<br/>Andmekvaliteedi kontroll"]
+    I --> G
+
+    H --> J["Apache Superset<br/>Näidikulaud"]
+```
+
+Täpsem kirjeldus: [`docs/arhitektuur.md`](docs/arhitektuur.md)
+
+## Andmestik
+
+| Allikas | Tüüp | Ajas muutuv? | Roll |
+|---------|------|--------------|------|
+| TME API v2 (`api.tme.eu`) | REST API (OAuth2) | Jah, iga päev | Põhiandmevoog — toodete hinnad ja laoseis |
+| Farnell API (`api.element14.com`) | REST API (API key) | Jah, iga päev | Põhiandmevoog — toodete hinnad ja laoseis |
+| `tooted.csv` | seed | Ei, staatiline | Otsinguloend — 600 MPN-i 6 kategooriast |
+| `tarnijad.csv` | seed | Ei, staatiline | Kõrvaltabel — tarnijate nimed, riigid ja valuutad |
+
 ## Stack
 
 | Komponent | Tööriist |
@@ -91,6 +138,23 @@ docker compose up -d --build
 # http://localhost:8090  (admin / admin)
 ```
 
+## Saladused ja konfiguratsioon
+
+Kõik saladused (paroolid, API võtmed, andmebaasi URL-id) on `.env` failis. Repos on ainult `.env.example`, mis näitab vajalike muutujate struktuuri ilma tegelike väärtusteta. Päris `.env` faili ei tohi GitHubi panna — see on `.gitignore`-s.
+
+Vajalikud muutujad:
+
+| Muutuja | Tähendus |
+|---------|----------|
+| `DATABASE_URL` | Neon PostgreSQL ühenduse URL |
+| `API_PRIVATE_KEY` | TME API privaatvõti |
+| `API_APP_SECRET` | TME API rakenduse saladus |
+| `ELEMENT14_API_KEY` | Farnell/Element14 API võti |
+| `POSTGRES_HOST` | Neon hosti aadress (dbt ühendus) |
+| `POSTGRES_USER` | Andmebaasi kasutaja (dbt ühendus) |
+| `POSTGRES_PASSWORD` | Andmebaasi parool (dbt ühendus) |
+| `POSTGRES_DB` | Andmebaasi nimi (dbt ühendus) |
+
 ## DAG käitumine
 
 Mõlemad DAG-id (TME ja Element14) käivituvad igapäevaselt (`@daily`) ja koosnevad kolmest taskist:
@@ -164,6 +228,17 @@ Testid valideerivad:
 docker compose down        # peatab konteinerid, säilitab andmed
 docker compose down -v     # peatab ja kustutab kõik andmed (täielik lähtestamine)
 ```
+
+## Kokkuvõte, puudused ja võimalikud edasiarendused
+
+**Kokkuvõte:**
+- [TODO]
+
+**Puudused:**
+- [TODO]
+
+**Mis edasi:**
+- [TODO]
 
 ## Meeskond
 
