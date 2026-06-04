@@ -56,7 +56,7 @@ Näitame nüüd, kuidas kõik see päriselus töötab.
 
 Avame Airflow. Vasakul näeme kahte DAG-i: `tarnijakataloog_pipeline` TME jaoks ja `element14_tarnijakataloog_pipeline` Farnell UK jaoks. Mõlemad on seatud käima igapäevaselt.
 
-Käivitame ühe DAG-i käsitsi, et näidata töövoogu. Iga DAG koosneb kolmest taskist. Esimene task `laadi_kataloogid` hangib API-st 600 tootenumbri hinnad. Näeme Airflow logis, kuidas token uuendatakse, päringud saadetakse ja read salvestatakse staging tabelisse. `ON CONFLICT DO NOTHING` tagab, et sama päeva andmeid ei laadita topelt. Teine task `dbt_run` käivitab esmalt `dbt seed`, mis laadib CSV-viitetabelid andmebaasi, seejärel `dbt run`, mis ehitab kõik SQL-mudelid staging-ist läbi intermediate kuni mart-kihini. Kolmas task `dbt_test` käivitab 59-testilise test-suite'i. Näeme, et kõik testid saavad rohelise tulukese.
+Käivitame ühe DAG-i käsitsi, et näidata töövoogu. Iga DAG koosneb neljast taskist. Esimene task `dbt_seed` laadib CSV-viitetabelid (tooted.csv, tarnijad.csv) andmebaasi. Teine task `laadi_kataloogid` hangib API-st 600 tootenumbri hinnad. Näeme Airflow logis, kuidas token uuendatakse, päringud saadetakse ja read salvestatakse staging tabelisse. `ON CONFLICT DO NOTHING` tagab, et sama päeva andmeid ei laadita topelt. Kolmas task `dbt_run` ehitab kõik SQL-mudelid staging-ist läbi intermediate kuni mart-kihini. Neljas task `dbt_test` käivitab 59-testilise test-suite'i. Näeme, et kõik testid saavad rohelise tulukese.
 
 **3b. Superset näidikulaud**
 
@@ -84,11 +84,11 @@ Andmekvaliteet on selles projektis täielikult automatiseeritud.
 
 Projektis on 59 automaatset dbt testi, mis käivituvad iga DAG-i jooksuga.
 
-Staging kihis on 30 testi. Need kontrollivad not_null väljasid kriitilistes veergudes nagu hind, tootenumber ja kuupäev. Samuti kontrollitakse referentsiaalset integraali: iga tarnija kood staging-tabelis peab esinema ka `tarnijad.csv` seed-tabelis. Unikaalsust kontrollitakse toote, tarnija ja kuupäeva kombinatsiooni järgi.
+Staging kihis on 17 testi. Need kontrollivad not_null väljasid kriitilistes veergudes nagu hind, tootenumber ja kuupäev. Samuti kontrollitakse referentsiaalset terviklikkust: iga tarnija kood staging-tabelis peab esinema ka `tarnijad.csv` seed-tabelis. Unikaalsust kontrollitakse tarnija koodi järgi seed-tabelis.
 
 Intermediate kihis on 17 testi, mis tagavad, et hinnamuutuste arvutus ja päevased pakkumised ei sisalda null-väärtusi kriitilistes veergudes.
 
-Marts kihis on 12 testi. Lisaks not_null ja unikaalsuse kontrollidele on siin eraldi test, mis kontrollib, et mart-tabelis on üldse ridu. See tagab, et tühi mart ei jää vaikselt näidikulauale nähtavale.
+Marts kihis on 25 testi. Need katavad viit mart-mudelit: tarnija koondstatistika, kategooriate hinnajaotus, KPI ülevaade, TOP 10 kallimat toodet ja hinnavõrdlus. Lisaks not_null kontrollidele on unikaalsuse testid KPI kuupäeva ja tarnija koodi järgi.
 
 Andmeturbe poolt: projektis isikuandmeid ei ole. TME ja Farnell API-d tagastavad ainult tootekataloogide infot. API võtmed, andmebaasi parool ja DATABASE_URL on `.env` failis, mis on `.gitignore`-s ja mida kunagi reposse ei panda. Repos on ainult `.env.example`. GBP-EUR kursi arvutuses kasutatakse Frankfurter API-t, mis toetub EKP kursile, ning fallback-kurss 1.18 on kasutusel, kui API ei vasta.
 
