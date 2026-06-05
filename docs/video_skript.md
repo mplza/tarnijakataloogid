@@ -54,7 +54,7 @@ Näitame nüüd, kuidas kõik see päriselus töötab.
 
 > *Ekraanil: Airflow UI, localhost:8083, mõlemad DAG-id nähtaval.*
 
-Avame Airflow. Vasakul näeme kahte DAG-i: `tarnijakataloog_pipeline` TME jaoks ja `element14_tarnijakataloog_pipeline` Farnell UK jaoks. Mõlemad on seatud käima igapäevaselt.
+Avame Airflow. Vasakul näeme kahte DAG-i: `tme_tarnijakataloog_pipeline` TME jaoks ja `element14_tarnijakataloog_pipeline` Farnell UK jaoks. Mõlemad on seatud käima igapäevaselt.
 
 Käivitame ühe DAG-i käsitsi, et näidata töövoogu. Iga DAG koosneb neljast taskist. Esimene task `dbt_seed` laadib CSV-viitetabelid (tooted.csv, tarnijad.csv) andmebaasi. Teine task `laadi_kataloogid` hangib API-st 600 tootenumbri hinnad. Näeme Airflow logis, kuidas token uuendatakse, päringud saadetakse ja read salvestatakse staging tabelisse. `ON CONFLICT DO NOTHING` tagab, et sama päeva andmeid ei laadita topelt. Kolmas task `dbt_run` ehitab kõik SQL-mudelid staging-ist läbi intermediate kuni mart-kihini. Neljas task `dbt_test` käivitab 59-testilise test-suite'i. Näeme, et kõik testid saavad rohelise tulukese.
 
