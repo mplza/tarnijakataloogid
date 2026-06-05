@@ -46,7 +46,7 @@ x-airflow-common:
     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     POSTGRES_DB: ${POSTGRES_DB}
     # dbt installimine koos Airflow'ga (kasutab BashOperator'it)
-    _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-dbt-postgres==1.10.0}
+    _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-dbt-core==1.9.4 dbt-postgres==1.9.1}
   volumes:
     - ./airflow/dags:/opt/airflow/dags
     - airflow-logs:/opt/airflow/logs
