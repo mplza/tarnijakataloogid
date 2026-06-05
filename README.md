@@ -222,6 +222,20 @@ Testid valideerivad:
 
 3. **Loo graafikud ja dashboard** — kasuta ülaltoodud dataseteid
 
+## Näidikulaua importimine (valmis eksport)
+
+Graafikute käsitsi loomise asemel saab importida valmis näidikulaua
+**Tarnijakataloogide hinnavõrdluse näidikulaud** kaustast
+[`superset/dashboards/`](superset/dashboards/):
+
+1. Seadista andmebaasiühendus (vt eelmine jaotis, samm 1)
+2. **Dashboards → Import** (üles-nool) → vali `tarnijakataloog_dashboard.zip`
+3. Sisesta küsimisel andmebaasi parool
+4. Ava **Dashboards → Tarnijakataloogide hinnavõrdluse näidikulaud**
+
+> Ühenduse andmed (`sqlalchemy_uri`) on ZIP-is turvakaalutlustel maskitud
+> placeholderid — päris väärtused tuleb importimisel ise sisestada (vt jaotis "Saladused ja konfiguratsioon").
+
 ## Peatamine
 
 ```bash

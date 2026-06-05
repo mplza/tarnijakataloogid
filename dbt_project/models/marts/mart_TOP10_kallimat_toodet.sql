@@ -7,6 +7,7 @@ WITH ranked AS (
         UPPER(tootja) AS tootja,
         kategooria,
         laetud_kuupaev,
+        tarnija_nimi,
         hind_eur,
         ROW_NUMBER() OVER (
             PARTITION BY mpn, UPPER(tootja), kategooria, laetud_kuupaev
