@@ -246,13 +246,18 @@ docker compose down -v     # peatab ja kustutab kõik andmed (täielik lähtesta
 ## Kokkuvõte, puudused ja võimalikud edasiarendused
 
 **Kokkuvõte:**
-- [TODO]
+- Pipeline töötab end-to-end: Airflow → staging → dbt → Superset
+- Airflow kävitab töövoo automaatselt iga päev
+- DAG'id on idempotentsed — korduvkäivitused ei duplikeeri andmeid
+- dbt testid kontrollivad andmekvaliteeti automaatselt iga käivitamise lõpus
 
-**Puudused:**
-- [TODO]
+**Piirangud:**
+- Superset dashboard tuleb esimesel korral käsitsi seadistada
 
-**Mis edasi:**
-- [TODO]
+**Võimalikud edasiarendused:**
+- Lisada rohkemate hulgimüüjate API'd või muud andmeallikad, et oleks võimalik hinnavõrdlust teha rohkemate tarnijate vahel
+- Lisade rohkem tooteid seemnesse
+
 
 ## Meeskond
 
