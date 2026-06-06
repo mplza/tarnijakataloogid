@@ -76,6 +76,7 @@ TME_OTSINGU_PIIR = 100   # maksimaalne toodete arv otsingu kohta
 TME_PAKETI_SUURUS = 25   # maksimaalne sümbolite arv /products/data päringu kohta
 TOKEN_PARINGUTE_LIMIIT = 40  # uuenda token enne 5-min aegumist (~50 päringu juures)
 RETRY_KATSEID = 5            # mitu korda HTTP päringut proovida transient vea puhul
+TME_PARINGU_PAUS = 0.6       # väike paus iga HTTP päringu ees, et TME rate limitit vähendada
 
 
 def _paringus_retry(fn, *args, **kwargs):
@@ -84,6 +85,7 @@ def _paringus_retry(fn, *args, **kwargs):
     last_err = None
     for katse in range(RETRY_KATSEID):
         try:
+            time.sleep(TME_PARINGU_PAUS)
             return fn(*args, **kwargs)
         except (requests.exceptions.SSLError,
                 requests.exceptions.ConnectionError,
