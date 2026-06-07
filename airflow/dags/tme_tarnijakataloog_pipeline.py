@@ -339,6 +339,8 @@ with DAG(
             "cd /opt/airflow/dbt_project && "
             "dbt seed --full-refresh --profiles-dir ."
         ),
+        retries=3,
+        retry_delay=timedelta(seconds=10),
     )
 
     lae_andmed = PythonOperator(
@@ -361,6 +363,8 @@ with DAG(
             "cd /opt/airflow/dbt_project && "
             "dbt test --profiles-dir ."
         ),
+        retries=3,
+        retry_delay=timedelta(seconds=10),
     )
 
     dbt_seed >> lae_andmed >> dbt_run >> dbt_test

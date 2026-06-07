@@ -72,6 +72,7 @@ E14_POOD = "uk.farnell.com"
 E14_VALUUTA = "GBP"
 E14_OTSINGU_PIIR = 5    # maksimaalne variantide arv MPN-i kohta
 RETRY_KATSEID = 5       # mitu korda HTTP päringut proovida transient vea puhul
+E14_PARINGU_PAUS = 0.5  # paus iga HTTP päringu ees, et rate limitit vähendada
 FX_API_BASE = "https://api.frankfurter.app"
 GBP_EUR_FALLBACK = 1.18  # GBP→EUR fallback kurss kui Frankfurter API ei vasta
 # PAKETI_SUURUS pole, sest E14 tagastab hinnad ja laoseisu ühe päringuga.
@@ -83,6 +84,7 @@ def _paringus_retry(fn, *args, **kwargs):
     last_err = None
     for katse in range(RETRY_KATSEID):
         try:
+            time.sleep(E14_PARINGU_PAUS)
             return fn(*args, **kwargs)
         except (requests.exceptions.SSLError,
                 requests.exceptions.ConnectionError,
@@ -219,7 +221,7 @@ def laadi_kataloogid(**context):
     gbp_eur_kurss = _hangi_gbp_eur_kurss()
     koik_read = []
 
-    with ThreadPoolExecutor(max_workers=8) as executor:
+    with ThreadPoolExecutor(max_workers=4) as executor:
         futures = {executor.submit(_hangi_tooted, mpn): (mpn, kategooria)
                    for mpn, kategooria in mpn_kategooriad}
 
@@ -283,6 +285,8 @@ with DAG(
             "cd /opt/airflow/dbt_project && "
             "dbt seed --full-refresh --profiles-dir ."
         ),
+        retries=3,
+        retry_delay=timedelta(seconds=10),
     )
 
     lae_andmed = PythonOperator(
@@ -305,6 +309,8 @@ with DAG(
             "cd /opt/airflow/dbt_project && "
             "dbt test --profiles-dir ."
         ),
+        retries=3,
+        retry_delay=timedelta(seconds=10),
     )
 
     dbt_seed >> lae_andmed >> dbt_run >> dbt_test
